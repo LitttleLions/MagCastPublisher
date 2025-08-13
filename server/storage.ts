@@ -178,10 +178,10 @@ export class MemStorage implements IStorage {
           progress INTEGER DEFAULT 0,
           pdfUrl TEXT,
           errorMessage TEXT,
-          metadata TEXT,
-          createdAt TEXT NOT NULL,
+          successMessage TEXT,
           startedAt TEXT,
           completedAt TEXT,
+          createdAt TEXT NOT NULL,
           FOREIGN KEY (issueId) REFERENCES issues (id),
           FOREIGN KEY (templatePackId) REFERENCES template_packs (id)
         )
@@ -832,16 +832,16 @@ export class MemStorage implements IStorage {
         renderer: insertJob.renderer || "puppeteer",
         pdfUrl: insertJob.pdfUrl || null,
         errorMessage: insertJob.errorMessage || null,
-        successMessage: null,
+        successMessage: insertJob.successMessage || null,
         startedAt: null,
         completedAt: null,
         createdAt: now,
       };
 
       db.run(`
-        INSERT INTO render_jobs (id, issueId, templatePackId, renderer, status, progress, createdAt, pdfUrl, errorMessage)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [job.id, job.issueId, job.templatePackId, job.renderer, job.status, job.progress, job.createdAt, job.pdfUrl, job.errorMessage], function(err) {
+        INSERT INTO render_jobs (id, issueId, templatePackId, renderer, status, progress, createdAt, pdfUrl, errorMessage, successMessage)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [job.id, job.issueId, job.templatePackId, job.renderer, job.status, job.progress, job.createdAt, job.pdfUrl, job.errorMessage, job.successMessage], function(err) {
         if (err) {
           console.error("Error creating render job:", err);
           reject(err);

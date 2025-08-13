@@ -367,7 +367,7 @@ export default function JsonIngestion() {
           section: (() => {
             try {
               const sections = typeof magazine.sections === 'string' 
-                ? JSON.parse(magazine.sections) 
+                ? JSON.JSON.parse(magazine.sections) 
                 : magazine.sections;
               return sections?.[0] || "Hauptteil";
             } catch (e) {
@@ -632,7 +632,7 @@ export default function JsonIngestion() {
                             console.warn('Failed to parse sections for magazine:', magazine.id, e);
                             sections = [];
                           }
-                          
+
                           return sections.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
                               {sections.slice(0, 2).map((section: string, idx: number) => (
