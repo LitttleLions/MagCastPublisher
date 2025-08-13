@@ -1,4 +1,3 @@
-import React from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -13,7 +12,6 @@ import Assets from "@/pages/assets";
 import Publications from "@/pages/publications";
 import LayoutEngine from "@/pages/layout-engine";
 import MainLayout from "@/components/layout/main-layout";
-import { useMemo } from "react";
 
 function Router() {
   return (
@@ -33,15 +31,6 @@ function Router() {
 }
 
 function App() {
-  const queryClient = useMemo(() => new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: 1,
-        staleTime: 5 * 60 * 1000, // 5 minutes
-      },
-    },
-  }), []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
