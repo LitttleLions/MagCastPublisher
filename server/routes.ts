@@ -238,15 +238,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const asset = {
-        id: crypto.randomUUID(),
         filename: req.file.originalname,
         path: req.file.path,
         originalUrl: `/api/assets/serve/${req.file.filename}`,
         processedUrl: `/api/assets/serve/${req.file.filename}`,
         size: req.file.size,
         mimeType: req.file.mimetype,
-        status: "ready",
-        createdAt: new Date().toISOString(),
+        status: "ready" as const,
         ...metadata
       };
 

@@ -206,7 +206,7 @@ export class MemStorage implements IStorage {
       description: "Clean, minimalist design with flexible column layouts",
       version: "v2.1.0",
       isActive: true,
-      variants: [
+      variants: JSON.stringify([
         {
           id: "modern-clean",
           columns: 2,
@@ -221,13 +221,13 @@ export class MemStorage implements IStorage {
           body: { font_min: 9.0, font_max: 10.0, leading: [1.3, 1.4] },
           pullquote: { allow: true, min_paragraph: 4 }
         }
-      ],
-      rules: {
+      ]),
+      rules: JSON.stringify({
         typography: { font_min: 9.0, font_max: 10.5, line_height_min: 1.3, line_height_max: 1.5 },
         layout: { max_columns: 3, min_text_length: 150, max_text_length: 1800 },
         images: { hero_required_words: 200, max_images_per_column: 2 }
-      },
-      createdAt: new Date(),
+      }),
+      createdAt: new Date().toISOString(),
     };
 
     const corporatePack: TemplatePack = {
@@ -236,7 +236,7 @@ export class MemStorage implements IStorage {
       description: "Professional business report styling",
       version: "v1.8.2",
       isActive: true,
-      variants: [
+      variants: JSON.stringify([
         {
           id: "corporate-professional",
           columns: 2,
@@ -250,13 +250,13 @@ export class MemStorage implements IStorage {
           body: { font_min: 10.5, font_max: 11.5, leading: [1.5, 1.6] },
           pullquote: { allow: true, min_paragraph: 2 }
         }
-      ],
-      rules: {
+      ]),
+      rules: JSON.stringify({
         typography: { font_min: 10.0, font_max: 11.5, line_height_min: 1.45, line_height_max: 1.6 },
         layout: { max_columns: 2, min_text_length: 200, max_text_length: 2500 },
         images: { hero_required_words: 300, max_images_per_column: 1 }
-      },
-      createdAt: new Date(),
+      }),
+      createdAt: new Date().toISOString(),
     };
 
     const magazinePack: TemplatePack = {
@@ -265,7 +265,7 @@ export class MemStorage implements IStorage {
       description: "Traditional magazine layout with rich typography",
       version: "v3.0.1",
       isActive: false,
-      variants: [
+      variants: JSON.stringify([
         {
           id: "magazine-editorial",
           columns: 2,
@@ -287,13 +287,13 @@ export class MemStorage implements IStorage {
           body: { font_min: 9.5, font_max: 10.5, leading: [1.4, 1.5] },
           pullquote: { allow: true, min_paragraph: 2 }
         }
-      ],
-      rules: {
+      ]),
+      rules: JSON.stringify({
         typography: { font_min: 9.0, font_max: 10.5, line_height_min: 1.3, line_height_max: 1.5 },
         layout: { max_columns: 3, min_text_length: 100, max_text_length: 2200 },
         images: { hero_required_words: 150, max_images_per_column: 3 }
-      },
-      createdAt: new Date(),
+      }),
+      createdAt: new Date().toISOString(),
     };
 
     // Insert sample data into the database
@@ -302,7 +302,7 @@ export class MemStorage implements IStorage {
         db.run(`
           INSERT INTO template_packs (id, name, description, version, isActive, createdAt)
           VALUES (?, ?, ?, ?, ?, ?)
-        `, [pack.id, pack.name, pack.description, pack.version, pack.isActive ? 1 : 0, pack.createdAt.toISOString()], function(err) {
+        `, [pack.id, pack.name, pack.description, pack.version, pack.isActive ? 1 : 0, pack.createdAt], function(err) {
           if (err) {
             console.error("Error inserting template pack:", err);
             return reject(err);
@@ -310,7 +310,8 @@ export class MemStorage implements IStorage {
           const packId = this.lastID; // This is not the ID of the pack, but the row ID. We use pack.id directly.
 
           // Insert variants
-          pack.variants.forEach(variant => {
+          const variants = JSON.parse(pack.variants);
+          variants.forEach((variant: any) => {
             db.run(`
               INSERT INTO template_pack_variants (id, templatePackId, variantId, columns, hero, body, pullquote)
               VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -320,10 +321,11 @@ export class MemStorage implements IStorage {
           });
 
           // Insert rules
+          const rules = JSON.parse(pack.rules);
           db.run(`
             INSERT INTO template_pack_rules (templatePackId, typography, layout, images)
             VALUES (?, ?, ?, ?)
-          `, [pack.id, JSON.stringify(pack.rules.typography), JSON.stringify(pack.rules.layout), JSON.stringify(pack.rules.images)], (err) => {
+          `, [pack.id, JSON.stringify(rules.typography), JSON.stringify(rules.layout), JSON.stringify(rules.images)], (err) => {
             if (err) console.error("Error inserting template pack rules:", err);
           });
 
@@ -375,7 +377,7 @@ export class MemStorage implements IStorage {
         title: insertIssue.title,
         issueId: insertIssue.issueId,
         date: insertIssue.date,
-        sections: insertIssue.sections || [],
+        sections: JSON.stringify(insertIssue.sections || []),
         status: insertIssue.status || "draft",
         createdAt: now,
         updatedAt: now,
@@ -384,7 +386,7 @@ export class MemStorage implements IStorage {
       db.run(`
         INSERT INTO issues (id, title, issueId, date, sections, status, createdAt, updatedAt)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `, [issue.id, issue.title, issue.issueId, issue.date, JSON.stringify(issue.sections), issue.status, issue.createdAt, issue.updatedAt], function(err) {
+      `, [issue.id, issue.title, issue.issueId, issue.date, issue.sections, issue.status, issue.createdAt, issue.updatedAt], function(err) {
         if (err) {
           console.error("Error creating issue:", err);
           reject(err);
@@ -579,7 +581,7 @@ export class MemStorage implements IStorage {
       db.run(`
         INSERT INTO images (id, articleId, src, role, caption, credit, focalPoint, dpi, width, height, createdAt)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [image.id, image.articleId, image.src, image.role, image.caption, image.credit, JSON.stringify(image.focalPoint), image.dpi, image.width, image.height, image.createdAt], function(err) {
+      `, [image.id, image.articleId, image.src, image.role, image.caption, image.credit, image.focalPoint, image.dpi, image.width, image.height, now], function(err) {
         if (err) {
           console.error("Error creating image:", err);
           reject(err);
@@ -898,7 +900,7 @@ export class MemStorage implements IStorage {
 
   async createAsset(insertAsset: InsertAsset): Promise<Asset> {
     return new Promise((resolve, reject) => {
-      const assetId = insertAsset.id || randomUUID();
+      const assetId = randomUUID();
       const now = new Date().toISOString();
 
       db.run(`
@@ -984,7 +986,7 @@ export class MemStorage implements IStorage {
       issue = await this.updateIssue(existingIssue.id, {
         title: jsonData.issue.title,
         date: jsonData.issue.date,
-        sections: jsonData.sections,
+        sections: JSON.stringify(jsonData.sections),
         status: "processing",
       }) || existingIssue;
 
@@ -1016,7 +1018,7 @@ export class MemStorage implements IStorage {
         title: articleData.title,
         dek: articleData.dek,
         author: articleData.author,
-        bodyHtml: articleData.bodyHtml,
+        bodyHtml: articleData.body_html,
       });
 
       console.log(`Created article ${article.id} for issue ${issue.id}`);

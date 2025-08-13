@@ -1,24 +1,24 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, jsonb, integer, boolean } from "drizzle-orm/pg-core";
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Magazine Issues
-export const issues = pgTable("issues", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+export const issues = sqliteTable("issues", {
+  id: text("id").primaryKey(),
   title: text("title").notNull(),
   issueId: text("issue_id").notNull().unique(), // e.g., "2025-09"
   date: text("date").notNull(),
-  sections: jsonb("sections").$type<string[]>().notNull().default([]),
+  sections: text("sections").notNull().default("[]"), // JSON string
   status: text("status").notNull().default("draft"), // draft, processing, completed, failed
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
 });
 
 // Articles within issues
-export const articles = pgTable("articles", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  issueId: varchar("issue_id").notNull().references(() => issues.id),
+export const articles = sqliteTable("articles", {
+  id: text("id").primaryKey(),
+  issueId: text("issue_id").notNull().references(() => issues.id),
   articleId: text("article_id").notNull(), // e.g., "hafen-nacht"
   section: text("section").notNull(),
   type: text("type").notNull(), // feature, reportage, short
@@ -26,13 +26,13 @@ export const articles = pgTable("articles", {
   dek: text("dek"),
   author: text("author").notNull(),
   bodyHtml: text("body_html").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
+  createdAt: text("created_at").notNull(),
 });
 
 // Images associated with articles
-export const images = pgTable("images", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  articleId: varchar("article_id").notNull().references(() => articles.id),
+export const images = sqliteTable("images", {
+  id: text("id").primaryKey(),
+  articleId: text("article_id").notNull().references(() => articles.id),
   src: text("src").notNull(),
   role: text("role").notNull(), // hero, inline, gallery
   caption: text("caption"),
@@ -44,36 +44,38 @@ export const images = pgTable("images", {
 });
 
 // Template packs
-export const templatePacks = pgTable("template_packs", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+export const templatePacks = sqliteTable("template_packs", {
+  id: text("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
   version: text("version").notNull(),
-  isActive: boolean("is_active").default(false),
-  variants: jsonb("variants").$type<any[]>().notNull().default([]),
-  rules: jsonb("rules").$type<any>().notNull().default({}),
-  createdAt: timestamp("created_at").defaultNow(),
+  isActive: integer("is_active", { mode: 'boolean' }).default(false),
+  variants: text("variants").notNull().default("[]"), // JSON string
+  rules: text("rules").notNull().default("{}"), // JSON string
+  createdAt: text("created_at").notNull(),
 });
 
 // Render jobs
-export const renderJobs = pgTable("render_jobs", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  issueId: varchar("issue_id").notNull().references(() => issues.id),
-  templatePackId: varchar("template_pack_id").notNull().references(() => templatePacks.id),
+export const renderJobs = sqliteTable("render_jobs", {
+  id: text("id").primaryKey(),
+  issueId: text("issue_id").notNull().references(() => issues.id),
+  templatePackId: text("template_pack_id").notNull().references(() => templatePacks.id),
   status: text("status").notNull().default("queued"), // queued, processing, completed, failed
   progress: integer("progress").default(0),
   renderer: text("renderer").notNull().default("prince"), // prince, vivliostyle
   pdfUrl: text("pdf_url"),
   errorMessage: text("error_message"),
-  startedAt: timestamp("started_at"),
-  completedAt: timestamp("completed_at"),
-  createdAt: timestamp("created_at").defaultNow(),
+  metadata: text("metadata"), // JSON string for additional data
+  startedAt: text("started_at"),
+  completedAt: text("completed_at"),
+  createdAt: text("created_at").notNull(),
 });
 
 // Assets for image management
-export const assets = pgTable("assets", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+export const assets = sqliteTable("assets", {
+  id: text("id").primaryKey(),
   filename: text("filename").notNull(),
+  path: text("path"), // File system path
   originalUrl: text("original_url").notNull(),
   processedUrl: text("processed_url"),
   mimeType: text("mime_type").notNull(),
@@ -82,7 +84,8 @@ export const assets = pgTable("assets", {
   height: integer("height"),
   dpi: integer("dpi"),
   status: text("status").default("processing"), // processing, ready, failed
-  createdAt: timestamp("created_at").defaultNow(),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
 });
 
 // Schema validations
