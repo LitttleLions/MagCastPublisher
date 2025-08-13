@@ -1,13 +1,13 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { 
-  BookOpen, 
-  LayoutGrid, 
-  Upload, 
-  Layers, 
-  Settings, 
-  BarChart3, 
-  Images, 
+import {
+  BookOpen,
+  LayoutGrid,
+  Upload,
+  Layers,
+  Settings,
+  BarChart3,
+  Images,
   FileText
 } from "lucide-react";
 
