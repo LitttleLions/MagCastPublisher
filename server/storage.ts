@@ -196,7 +196,7 @@ export class MemStorage implements IStorage {
   async updateIssue(id: string, updates: Partial<Issue>): Promise<Issue | undefined> {
     const issue = this.issues.get(id);
     if (!issue) return undefined;
-    
+
     const updatedIssue = { ...issue, ...updates, updatedAt: new Date() };
     this.issues.set(id, updatedIssue);
     return updatedIssue;
@@ -236,7 +236,7 @@ export class MemStorage implements IStorage {
   async updateArticle(id: string, updates: Partial<Article>): Promise<Article | undefined> {
     const article = this.articles.get(id);
     if (!article) return undefined;
-    
+
     const updatedArticle = { ...article, ...updates };
     this.articles.set(id, updatedArticle);
     return updatedArticle;
@@ -301,7 +301,7 @@ export class MemStorage implements IStorage {
   async updateTemplatePack(id: string, updates: Partial<TemplatePack>): Promise<TemplatePack | undefined> {
     const pack = this.templatePacks.get(id);
     if (!pack) return undefined;
-    
+
     const updatedPack = { ...pack, ...updates };
     this.templatePacks.set(id, updatedPack);
     return updatedPack;
@@ -340,7 +340,7 @@ export class MemStorage implements IStorage {
   async updateRenderJob(id: string, updates: Partial<RenderJob>): Promise<RenderJob | undefined> {
     const job = this.renderJobs.get(id);
     if (!job) return undefined;
-    
+
     const updatedJob = { ...job, ...updates };
     this.renderJobs.set(id, updatedJob);
     return updatedJob;
@@ -373,7 +373,7 @@ export class MemStorage implements IStorage {
   async updateAsset(id: string, updates: Partial<Asset>): Promise<Asset | undefined> {
     const asset = this.assets.get(id);
     if (!asset) return undefined;
-    
+
     const updatedAsset = { ...asset, ...updates };
     this.assets.set(id, updatedAsset);
     return updatedAsset;
@@ -381,45 +381,76 @@ export class MemStorage implements IStorage {
 
   // JSON Processing
   async processJsonIssue(jsonData: JsonIssue): Promise<Issue> {
-    // Create the issue
-    const issue = await this.createIssue({
-      title: jsonData.issue.title,
-      issueId: jsonData.issue.id,
-      date: jsonData.issue.date,
-      sections: jsonData.sections,
-      status: "draft",
-    });
+    // Check if issue already exists by issueId (not database id)
+    const existingIssue = Array.from(this.issues.values()).find(
+      issue => issue.issueId === jsonData.issue.id
+    );
 
-    // Create articles and images
+    let issue: Issue;
+    if (existingIssue) {
+      // Update existing issue
+      issue = await this.updateIssue(existingIssue.id, {
+        title: jsonData.issue.title,
+        date: jsonData.issue.date,
+        sections: jsonData.sections,
+        status: "processing",
+      }) || existingIssue;
+
+      // Clear existing articles and images for this issue
+      const existingArticles = Array.from(this.articles.values()).filter(a => a.issueId === issue.id);
+      for (const article of existingArticles) {
+        // Delete images first
+        const articleImages = Array.from(this.images.values()).filter(img => img.articleId === article.id);
+        articleImages.forEach(img => this.images.delete(img.id));
+        // Delete article
+        this.articles.delete(article.id);
+      }
+    } else {
+      // Create new issue
+      issue = await this.createIssue({
+        title: jsonData.issue.title,
+        issueId: jsonData.issue.id,
+        date: jsonData.issue.date,
+        sections: jsonData.sections,
+        status: "processing",
+      });
+    }
+
+    console.log(`Processing JSON for issue ${issue.id} (issueId: ${issue.issueId}) with ${jsonData.articles.length} articles`);
+
+    // Process each article
     for (const articleData of jsonData.articles) {
       const article = await this.createArticle({
-        issueId: issue.id,
+        issueId: issue.id, // Use the correct database ID
         articleId: articleData.id,
         section: articleData.section,
         type: articleData.type,
         title: articleData.title,
-        dek: articleData.dek || "",
+        dek: articleData.dek,
         author: articleData.author,
         bodyHtml: articleData.body_html,
       });
 
-      // Create images for this article
+      console.log(`Created article ${article.id} for issue ${issue.id}`);
+
+      // Process images for this article
       for (const imageData of articleData.images) {
         await this.createImage({
           articleId: article.id,
           src: imageData.src,
           role: imageData.role,
-          caption: imageData.caption || null,
-          credit: imageData.credit || null,
-          focalPoint: imageData.focal_point || null,
-          dpi: null,
-          width: null,
-          height: null,
+          caption: imageData.caption,
+          credit: imageData.credit,
+          focalPoint: imageData.focal_point,
         });
       }
     }
 
-    return issue;
+    // Mark issue as ready
+    const finalIssue = await this.updateIssue(issue.id, { status: "draft" });
+    console.log(`Completed processing issue ${issue.id} with ${jsonData.articles.length} articles`);
+
+    return finalIssue || issue;
   }
 }
 
