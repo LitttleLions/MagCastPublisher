@@ -19,7 +19,7 @@ interface Issue {
   issueId: string;
   title: string;
   date: string;
-  sections: string[];
+  sections: string[] | string; // Can be either array or JSON string
   status: string;
   createdAt: string;
 }
@@ -352,11 +352,28 @@ export default function JsonIngestion() {
         title: magazine.title,
         date: magazine.date
       },
-      sections: magazine.sections || ["Hauptteil", "Service", "Editorial"],
+      sections: (() => {
+        try {
+          return typeof magazine.sections === 'string' 
+            ? JSON.parse(magazine.sections) 
+            : magazine.sections || ["Hauptteil", "Service", "Editorial"];
+        } catch (e) {
+          return ["Hauptteil", "Service", "Editorial"];
+        }
+      })(),
       articles: [
         {
           id: "beispiel-artikel-1",
-          section: magazine.sections?.[0] || "Hauptteil",
+          section: (() => {
+            try {
+              const sections = typeof magazine.sections === 'string' 
+                ? JSON.parse(magazine.sections) 
+                : magazine.sections;
+              return sections?.[0] || "Hauptteil";
+            } catch (e) {
+              return "Hauptteil";
+            }
+          })(),
           type: "feature",
           title: "Beispiel-Artikel Titel",
           dek: "Kurzer Vorspann oder Untertitel",
@@ -374,7 +391,16 @@ export default function JsonIngestion() {
         },
         {
           id: "beispiel-artikel-2", 
-          section: magazine.sections?.[1] || "Service",
+          section: (() => {
+            try {
+              const sections = typeof magazine.sections === 'string' 
+                ? JSON.parse(magazine.sections) 
+                : magazine.sections;
+              return sections?.[1] || "Service";
+            } catch (e) {
+              return "Service";
+            }
+          })(),
           type: "article",
           title: "Zweiter Artikel",
           author: "Anderer Autor",
@@ -592,20 +618,30 @@ export default function JsonIngestion() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {magazine.sections && magazine.sections.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {magazine.sections.slice(0, 2).map((section, idx) => (
-                              <Badge key={idx} variant="outline" className="text-xs">
-                                {section}
-                              </Badge>
-                            ))}
-                            {magazine.sections.length > 2 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{magazine.sections.length - 2}
-                              </Badge>
-                            )}
-                          </div>
-                        )}
+                        {magazine.sections && (() => {
+                          let sections = [];
+                          try {
+                            sections = typeof magazine.sections === 'string' 
+                              ? JSON.parse(magazine.sections) 
+                              : magazine.sections;
+                          } catch (e) {
+                            sections = [];
+                          }
+                          return sections.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {sections.slice(0, 2).map((section: string, idx: number) => (
+                                <Badge key={idx} variant="outline" className="text-xs">
+                                  {section}
+                                </Badge>
+                              ))}
+                              {sections.length > 2 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{sections.length - 2}
+                                </Badge>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>
                         {editingMagazine === magazine.id ? (
