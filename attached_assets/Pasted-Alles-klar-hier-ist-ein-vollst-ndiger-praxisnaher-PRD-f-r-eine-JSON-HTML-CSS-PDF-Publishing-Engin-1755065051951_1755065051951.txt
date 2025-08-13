@@ -1,0 +1,273 @@
+Alles klar — hier ist ein vollständiger, praxisnaher PRD für eine JSON→HTML/CSS→PDF-Publishing-Engine mit variablen Magazin-Layouts. Ich habe bewusst auf modulare Architektur, robuste Typografie-Regeln und echte Automatisierung geachtet und jeweils Alternativen (Prince, Vivliostyle, Headless CMS vs. DB) berücksichtigt.
+
+Produkt-Anforderungsdokument (PRD)
+
+Arbeitstitel
+
+“MagCast” – Automatisiertes Magazin-Publishing aus JSON
+
+1) Ziel & Nutzen
+
+Ein System, das mehrere Artikel + Bilder aus JSON einliest, daraus layoutintelligentes HTML/CSS generiert und anschließend druckfähige PDFs (Magazin/Katalog/Report) rendert. Kernanforderung: variable, datengetriebene Layouts (keine starren Zeichenzahlen), saubere Paginierung, automatisierbar (CI), wiederkehrend einsetzbar (Ausgaben/Serien). Für Druckereien: Beschnitt/Crop Marks & Prepress-Optionen. (Prince/Paged CSS unterstützen Druckmarken/Bleed via @page marks, DocRaptor als Prince-SaaS; Vivliostyle CLI kann PDF/X-1a, Paged.js für Open-Source-Prototypen).  ￼ ￼ ￼ ￼
+
+2) Zielgruppen & Use Cases
+	•	Redaktionen/Verlage/Marketing: periodische Magazine, Reports, Whitepaper, Produktkataloge.
+	•	SaaS/Agenturen: Multi-Mandanten-Publishing (viele Varianten aus gleichen Vorlagen).
+	•	Unternehmen: CI-konforme Berichte, Preislisten, Event-Programme.
+
+3) Nicht-Ziele (V1)
+	•	Kein vollwertiger WYSIWYG-Layouteditor (nur minimale Overrides).
+	•	Keine komplexen InDesign-Features wie interaktive EPUB, variable Fonts-Spielereien jenseits des CSS-Standards.
+	•	Kein DTP-Feinschliff auf Mikrometer-Niveau pro Artikel (dafür V2 mit „Editor Overrides“).
+
+⸻
+
+4) Funktionale Anforderungen
+
+4.1 Ingestion & Datenmodell
+	•	Eingang: JSON-Payload (lokal, API oder aus DB/Headless CMS per Webhook).
+	•	Mehrere Artikel pro Ausgabe; jeder Artikel kann n Bilder tragen, mit Caption/Credit.
+	•	Heft-Metadaten: Titel, Ausgabe-ID, Datum, Rubrikenreihenfolge, Impressum.
+	•	Varianten: Artikeltyp (Feature, Reportage, Kurzmeldung), Priorität für Bildgrößen (Hero, Inline, Galerie).
+
+Beispiel-JSON (vereinfacht):
+
+{
+  "issue": {"id": "2025-09", "title": "Stadt & Meer", "date": "2025-09-01"},
+  "sections": ["Titel", "Reportage", "Service"],
+  "articles": [
+    {
+      "id": "hafen-nacht",
+      "section": "Reportage",
+      "type": "feature",
+      "title": "Hafen bei Nacht",
+      "dek": "Lichter, Nebel, Schlepper",
+      "author": "Nora K.",
+      "body_html": "<p>...</p>",
+      "images": [
+        {"src": "https://cdn/lead.jpg", "role": "hero", "caption": "Blick aufs Dock", "credit": "Foto: XY", "focal_point": "0.5,0.3"},
+        {"src": "https://cdn/detail1.jpg", "role": "inline"}
+      ]
+    }
+  ]
+}
+
+4.2 Templating & Layoutlogik
+	•	Template-Packs (z. B. „Modern“, „Newspaper“, „Corporate“), jeweils mit HTML-Partials + CSS.
+	•	Layout-Entscheider (Engine) wählt pro Artikel eine Seitenvariante anhand:
+	•	Textlänge (Zeilen/Absätze), vorhandene Bilder/Rollen, Rubrik, Priorität „Bild vs. Text“.
+	•	Fitting-Strategien (konfigurierbar):
+	1.	Spaltenanzahl (1–3)
+	2.	Hero-Bild Höhe/Ratio-Treppen (z. B. 16:9/4:3/1:1)
+	3.	zulässige Range für font-size/line-height (z. B. Body 9.5–10.5 pt; Headlines 28–34 pt)
+	4.	Bild-Platzhaltergrößen & Umfluss (CSS Shapes optional), break-inside: avoid für Kicker/Quotes
+	5.	Widows/Orphans minimieren, automatische Silbentrennung (CSS hyphens:auto)
+	•	Globale Paginierung: @page-Regeln, laufende Kopf-/Fußzeilen (CSS running()), Seitennummern, automatisch generiertes TOC.
+	•	Prepress: Anschnitt, Crop Marks, definierte Seitenformate (A4/Letter), Ausgabeprofil (PDF/X via Renderer). (Prince: Druckmarken/Bleed; Vivliostyle CLI: PDF/X-1a via “PRESS-READY”).  ￼ ￼
+
+4.3 Rendering
+	•	Renderer A (Standard): Prince lokal (beste Paged-CSS + Prepress). Alternative SaaS: DocRaptor (Prince-Engine über API).  ￼ ￼
+	•	Renderer B (Open Source): Vivliostyle CLI (Node), optional PDF/X-1a.
+	•	Renderer C (Prototyping): Paged.js (Browser/Node) für schnelle Iteration; weniger Prepress.  ￼ ￼
+
+4.4 Medien & Assets
+	•	Bildpipeline: Serverseitige Renditions (DPI/Max-Breite), CMYK-Konvertierungs-Option, Focal-Point-Cropping (per CSS object-position + vorberechnete Ausschnitte).
+	•	Fallbacks: Platzhalter bei fehlenden Bildern, Log-Warnungen.
+	•	Schriften: Self-hosted (Lizenz), Einbettung im PDF.
+
+4.5 Qualitätssicherung
+	•	Preflight-Checks: fehlende Captions/Credits, Overset-Risiken, Bildauflösung < 220 dpi, zu viele Hurenkinder/Waisen.
+	•	Diff-Previews: HTML-Proof (ohne PDF) + „Overflow-Heatmap“.
+
+4.6 Automatisierung & Wiederholung
+	•	Batch-Builds (Ausgaben/Sprachen/Regionen).
+	•	CI-Hooks: Build bei neuem JSON/Release-Tag (GitHub Actions).
+	•	Webhooks vom CMS (Sanity/Strapi/Directus) → Render-Job. (Sanity: GROQ-Queries, Real-Time, Webhooks; Strapi/Directus: flexible Modelle & APIs).  ￼ ￼ ￼ ￼
+
+⸻
+
+5) Nicht-funktionale Anforderungen
+	•	Stabilität: deterministische Builds; idempotente Jobs.
+	•	Performance: lineare Skalierung (Queue + parallele Worker).
+	•	Sicherheit: API-Auth; bei DB-Variante Row-Level Security & Edge Functions für Webhook-Handling (Supabase).  ￼
+	•	Portabilität: Renderer austauschbar (Prince ↔ Vivliostyle).
+	•	Nachvollziehbarkeit: Artefakt-Versionierung (Issue-ID, Template-Hash, JSON-Hash).
+
+⸻
+
+6) Systemarchitektur (übersichtlich)
+
+Komponenten
+	1.	Ingestion API
+	•	Nimmt JSON an (REST) oder zieht Daten via Connector (Supabase/Headless CMS).
+	2.	Template-Service
+	•	Verwalten/Versionieren von Template-Packs (HTML-Partials + CSS + Regeln).
+	3.	Layout Decision Engine
+	•	Heuristik/Scoring: wählt je Artikel die best-fit-Variante (siehe 7).
+	4.	Render-Service
+	•	Baut HTML pro Ausgabe und ruft den PDF-Renderer (Prince/Vivliostyle/DocRaptor).
+	5.	Asset-Service
+	•	Bildverarbeitung, Caching, Lizenz-Check.
+	6.	Queue/Orchestrator
+	•	Jobs, Retries, Parallelisierung.
+	7.	Storage
+	•	PDF-Ausgaben, Logs, Previews (S3/Supabase Storage).
+	8.	Admin UI (V2)
+	•	Build-Status, Seitenvorschau, leichte Overrides (z. B. „Bildhöhe +1 Stufe“).
+
+Technologievorschläge
+	•	Runtime: Node.js (Templates, CLI-Tools), optional Python-Hilfsjobs.
+	•	Templating: Nunjucks/Liquid/Handlebars.
+	•	DB-Option (V2): Supabase (Postgres, Auth, Storage, Edge Functions).  ￼
+	•	Headless CMS-Option:
+	•	Strapi (Open-Source, Content-Type Builder),
+	•	Directus (Data Studio, API über vorhandene DB),
+	•	Sanity (SaaS, Portable Text, GROQ, Real-Time).  ￼ ￼ ￼
+
+⸻
+
+7) Layout-Entscheider (Heuristik)
+
+Eingaben: Body-Chars/Absätze, Überschriftenlängen, Bildanzahl/Rollen, Rubrik, erlaubte Typo-Ranges.
+
+Ablauf (vereinfacht):
+	1.	Variante-Pool je Artikeltyp (z. B. Feature: A, B, C — Unterschiede: Spalten, Hero-Höhe, Quote-Platz).
+	2.	Vorprüfung: Mindest-/Maximal-Textlänge; Hero nur, wenn Bild vorhanden.
+	3.	Fitting-Loop pro Variante:
+	•	Setze Spaltenanzahl → prüfe Overflow.
+	•	Passe font-size/line-height innerhalb der erlaubten Range an.
+	•	Skaliere Hero-Bild zwischen definierten Treppen (z. B. 36–52 vh).
+	•	Positioniere Pullquote und prüfe break-inside-Konflikte.
+	4.	Score berechnen: Overflow-Penalty, zu viel Weißraum, zu kleine Schrift, Bild-Clipping, schlechte Umbrüche (Widows/Orphans).
+	5.	Best-Score wählen; wenn alle scheitern → Fallback: automatische Folgeseite mit „continued on …“.
+
+CSS-Basis: Multi-Column, @page-Regeln, running() für Kopf/Fuß, marks für Druckzeichen; bei Prince/Vivliostyle/Paged.js sind Paged-Media-Funktionen implementiert.  ￼ ￼ ￼
+
+⸻
+
+8) Schnittstellen (API-Skizze)
+	•	POST /issues – JSON der Ausgabe (inkl. Artikel/Bilder) registrieren.
+	•	POST /issues/{id}/render?renderer=prince|vivlio – Render-Job starten.
+	•	GET /jobs/{id} – Status/Logs/Artefakte.
+	•	GET /issues/{id}/pdf – fertiges PDF.
+	•	POST /webhooks/cms – Trigger (Sanity/Strapi/Directus).
+
+⸻
+
+9) Templates & Regeln (Packs)
+
+Pack-Struktur
+
+/packs/modern/
+  /partials/  (article, hero, caption, pullquote, toc, masthead)
+  /css/       (base.css, paged.css, theme.css)
+  rules.yml   (Mappings: article.type → Varianten, Typo-Ranges, Bildtreppen)
+
+rules.yml (Beispielauszug)
+
+article_types:
+  feature:
+    variants:
+      - id: A
+        columns: 2
+        hero: {min_vh: 36, max_vh: 52}
+        body: {font_min: 9.5, font_max: 10.5, leading: [1.35, 1.5]}
+        pullquote: {allow: true, min_paragraph: 3}
+      - id: B
+        columns: 3
+        hero: {min_vh: 30, max_vh: 42}
+
+
+⸻
+
+10) Sicherheit, Rechte, Compliance
+	•	Auth (Tokens), Mandanten-Trennung, signierte Asset-URLs.
+	•	Supabase: RLS-Policies & Edge Functions für sichere Webhooks.  ￼
+	•	Fonts/Bilder: Lizenzen verifizieren; optional Lizenz-Flags im JSON.
+
+⸻
+
+11) Betrieb & Kostenrahmen (qualitativ)
+	•	Prince: kommerziell (hohe Qualität/Prepress). DocRaptor als Hosted-Alternative. Vivliostyle/Paged.js: Open Source. Entscheidung nach Prepress-Anforderung & Budget.  ￼ ￼
+
+⸻
+
+12) Roadmap & Meilensteine
+
+M0 – Architektur-Spike (2–3 Wochen)
+	•	Proof: JSON → HTML → Prince/Vivliostyle → PDF mit A4, @page marks, Kopf/Fuß, TOC, 2 Artikel-Varianten.
+	•	Akzeptanz: 10–20 Seiten PDF, Beschnitt/Crop Marks sichtbar, kein Overset.
+
+M1 – Template-Pack „Modern“
+	•	Regeln/Heuristik, 3 Artikeltypen (Feature, Longform, Kurzmeldung).
+	•	Pullquotes, Bildunterschriften/Credits, automatisch generiertes TOC/Impressum.
+
+M2 – Batch & CI
+	•	GitHub Actions Pipeline, Artefakt-Versionierung, Logs, HTML-Preview-Server.
+
+M3 – Asset-Pipeline
+	•	Renditions, Focal-Point, DPI-Checks, Platzhalter. CMYK-Option.
+
+M4 – Datenquelle (Variante A: Supabase)
+	•	Tabellen (Issues, Articles, Images), API, Rollen/RLS, Webhooks (Edge Functions) für Builds.  ￼
+
+M4 – Datenquelle (Variante B: Headless CMS)
+	•	Sanity (Portable Text + GROQ), Realtime-Preview;
+	•	Strapi (Content-Type Builder, self-hosted),
+	•	Directus (Data Studio, DB-first). Entscheidung per Spike: Content-Modeling, Webhooks, Rechte.  ￼ ￼ ￼
+
+M5 – Admin UI (V2)
+	•	Job-Dashboard, Seitenvorschau, „Soft Overrides“ (z. B. Quote verschieben, Bildtreppe +1).
+	•	Exportprofile (A4/Letter, mit/ohne Beschnitt).
+
+M6 – Multi-Mandant & Versionierte Packs
+	•	Mandanten-fähige Konfiguration, CI-gesicherte Template-Releases.
+
+⸻
+
+13) Akzeptanzkriterien (V1)
+	•	Eingabe: JSON mit ≥ 5 Artikeln (gemischte Längen), je Artikel ≥ 1 Bild.
+	•	Ausgabe: druckfähiges PDF (A4), Seitenzahlen, laufende Kopfzeilen (Rubrik/Titel), TOC, Impressum.
+	•	Layout: keine harten Zeichengrenzen; Engine wählt Varianten/Typo-Ranges automatisch; 0 Overset; ≤ 2 „Warnings“/Artikel (z. B. weite Weißräume).
+	•	Prepress: Beschnitt + Crop Marks im PDF aktivierbar. (Prince: via @page { marks: crop cross; }).  ￼ ￼
+
+⸻
+
+14) Entscheidungsleitfaden: Datenquelle DB vs. Headless CMS
+	•	Supabase (DB-zentrisch): volle Kontrolle, SQL/Views, Auth/RLS, Edge-Webhooks → sehr gut für plattformnahe Integration.  ￼
+	•	Headless CMS: schneller Redaktionsstart, GUI, Webhooks, Rich-Text-Modelle (z. B. Portable Text), Live-Preview & GROQ bei Sanity; Strapi/Directus self-hosted & flexibel. Empfehlung: wenn ein Redaktionsteam ohne Entwickler eigenständig Inhalte pflegen soll → CMS; sonst → DB.  ￼ ￼ ￼
+
+⸻
+
+15) Beispiel: CSS-Ausschnitt @page & Druckmarken
+
+@page {
+  size: A4;
+  margin: 15mm 15mm 20mm 15mm;
+  /* Prepress aktivieren – vom Renderer unterstützt */
+  marks: crop cross;
+}
+.running-header { /* for running() usage in Paged CSS engines */ }
+
+(Druckmarken/Bleed sind in Prince und darauf basierenden Services verfügbar; Vivliostyle/Paged.js unterstützen Paged-CSS für Print-Layout, PDF/X-1a via Vivliostyle-Workflow möglich.)  ￼ ￼ ￼
+
+⸻
+
+16) Risiken & Gegenmaßnahmen
+	•	Typo-Qualität/Zeilenfall: Heuristik feinjustieren; Sprachspezifische Trennmuster laden.
+	•	Bildrechte/DPI: Preflight-Gate; optionaler „Low-Res-Blocker“.
+	•	Renderer-Divergenzen: Gold-Pfad (Prince) definieren; Open-Source als „Good-Enough“/Fallback.
+	•	Komplexe Sonderseiten (Großtafeln/Infografiken): Spezial-Templates mit „full-bleed single page“.
+
+⸻
+
+17) Nächste konkrete Schritte
+	1.	Spike: Minimales Template („Modern“) + 3 Varianten (A/B/C) und Prince/Vivlio-Build.
+	2.	JSON-Schema finalisieren (Artikeltypen, Bildrollen, Typo-Ranges).
+	3.	Heuristik implementieren (Score + Fallback-Folgepage).
+	4.	CI-Build + Artefakt-Speicher, HTML-Preview.
+	5.	Entscheidung Supabase vs. Headless CMS per 1-wöchigem Vergleich (Import, Webhook, Rich-Text, Rechte).
+
+⸻
+
+Wenn du willst, setze ich dir als Nächstes das Minimal-Repo-Skelett auf (Ordnerstruktur für Packs, Beispiel-JSON, Nunjucks-Templates, Prince/Vivliostyle-Scripts) plus ein erstes rules.yml, damit ihr sofort experimentieren könnt.
