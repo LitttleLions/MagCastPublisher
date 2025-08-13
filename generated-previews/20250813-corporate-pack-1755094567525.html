@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MagCast Preview</title>
+    <style>
+        
+      /* CSS Reset and Base Styles */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      /* Paged Media Rules for Print/PDF */
+      @page {
+        size: A4;
+        margin: 15mm 15mm 20mm 15mm;
+        marks: crop cross;
+        bleed: 3mm;
+        
+        @top-center {
+          content: "Corporate Pack";
+          font-size: 8pt;
+          color: #666;
+        }
+        
+        @bottom-center {
+          content: counter(page);
+          font-size: 10pt;
+        }
+        
+        @bottom-left {
+          content: "8/13/2025";
+          font-size: 8pt;
+          color: #666;
+        }
+      }
+
+      @page :first {
+        @top-center { content: none; }
+        @bottom-center { content: none; }
+        @bottom-left { content: none; }
+      }
+
+      /* Typography Base */
+      body {
+        font-family: 'Times New Roman', serif;
+        color: #1a1a1a;
+        background: white;
+        counter-reset: page;
+      }
+
+      .magazine {
+        max-width: 210mm;
+        margin: 0 auto;
+        background: white;
+      }
+
+      /* Cover Page */
+      .cover-page {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        page-break-after: always;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40mm;
+      }
+
+      .cover-title {
+        font-size: 48pt;
+        font-weight: bold;
+        margin-bottom: 24pt;
+        line-height: 1.1;
+      }
+
+      .cover-issue {
+        font-size: 24pt;
+        margin-bottom: 12pt;
+        opacity: 0.9;
+      }
+
+      .cover-date {
+        font-size: 16pt;
+        opacity: 0.8;
+      }
+
+      /* Table of Contents */
+      .toc-page {
+        page-break-before: always;
+        page-break-after: always;
+        padding: 40pt 0;
+      }
+
+      .toc-title {
+        font-size: 28pt;
+        font-weight: bold;
+        margin-bottom: 24pt;
+        text-align: center;
+        border-bottom: 2px solid #1a1a1a;
+        padding-bottom: 12pt;
+      }
+
+      .toc-section {
+        margin-bottom: 24pt;
+      }
+
+      .toc-section-title {
+        font-size: 16pt;
+        font-weight: bold;
+        margin-bottom: 12pt;
+        color: #667eea;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .toc-entry {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 8pt;
+        padding-bottom: 4pt;
+        border-bottom: 1px dotted #ccc;
+      }
+
+      .toc-article-title {
+        font-size: 12pt;
+        flex-grow: 1;
+      }
+
+      .toc-author {
+        font-size: 10pt;
+        color: #666;
+        margin: 0 12pt;
+      }
+
+      .toc-page-number {
+        font-size: 12pt;
+        font-weight: bold;
+        color: #667eea;
+      }
+
+      /* Article Styles */
+      .magazine-article {
+        page-break-before: auto;
+        page-break-after: auto;
+        padding: 24pt 0;
+        border-bottom: 1px solid #e0e0e0;
+        margin-bottom: 24pt;
+      }
+
+      .magazine-article:last-child {
+        border-bottom: none;
+      }
+
+      /* Image Styles */
+      .article-image {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        break-inside: avoid;
+      }
+
+      .hero-image-container {
+        margin-bottom: 24pt;
+        column-span: all;
+        break-after: avoid;
+      }
+
+      .inline-image-container {
+        margin: 12pt 0;
+        break-inside: avoid;
+      }
+
+      .image-caption {
+        font-size: 9pt;
+        line-height: 1.3;
+        margin-top: 6pt;
+        font-style: italic;
+        color: #666;
+      }
+
+      .image-credit {
+        font-size: 8pt;
+        color: #999;
+        margin-top: 3pt;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      /* Imprint */
+      .imprint-page {
+        page-break-before: always;
+        padding: 40pt 0;
+        font-size: 9pt;
+        line-height: 1.4;
+        color: #666;
+      }
+
+      .imprint-title {
+        font-size: 14pt;
+        font-weight: bold;
+        margin-bottom: 18pt;
+        color: #1a1a1a;
+      }
+
+      .imprint-section {
+        margin-bottom: 12pt;
+      }
+
+      /* Utility Classes */
+      .page-break {
+        page-break-before: always;
+      }
+
+      .avoid-break {
+        break-inside: avoid;
+      }
+
+      .text-center {
+        text-align: center;
+      }
+
+      .text-uppercase {
+        text-transform: uppercase;
+      }
+
+      /* Print Optimizations */
+      @media print {
+        body {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        
+        .magazine-article {
+          orphans: 2;
+          widows: 2;
+        }
+      }
+
+      /* Responsive Adjustments for Screen Preview */
+      @media screen and (max-width: 768px) {
+        .magazine {
+          padding: 20pt;
+        }
+        
+        .cover-page {
+          height: auto;
+          min-height: 100vh;
+        }
+        
+        .article-content {
+          column-count: 1 !important;
+        }
+      }
+    
+        
+        /* Additional preview styles */
+        .preview-header {
+            background: #f5f5f5;
+            padding: 20px;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 40px;
+            text-align: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        .preview-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .layout-decisions {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 40px auto;
+            max-width: 800px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        .decision-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-left: 4px solid #667eea;
+            background: #f8f9ff;
+        }
+        
+        .warning {
+            color: #e67e22;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        /* Print-specific styles for better preview */
+        @media print {
+            .preview-header,
+            .layout-decisions {
+                display: none;
+            }
+        }
+        
+        /* Responsive adjustments */
+        @media screen and (max-width: 768px) {
+            .magazine {
+                padding: 10px;
+            }
+            
+            .preview-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-header">
+        <div class="preview-info">
+            <div>
+                <h3>MagCast Layout Preview</h3>
+                <p>Generiert am 13.8.2025, 14:16:07</p>
+            </div>
+            <div>
+                <strong>Geschätzte Seiten:</strong> 7<br>
+                <strong>Layout-Entscheidungen:</strong> 3
+            </div>
+        </div>
+    </div>
+    
+    <div class="layout-decisions">
+        <h4>Layout-Algorithmus Entscheidungen</h4>
+        
+            <div class="decision-item">
+                <strong>Artikel 1:</strong>
+                Variante: corporate-executive, 
+                Score: 105, 
+                Font: 10.7pt,
+                Spalten: 1
+                
+            </div>
+        
+            <div class="decision-item">
+                <strong>Artikel 2:</strong>
+                Variante: corporate-executive, 
+                Score: 105, 
+                Font: 10.7pt,
+                Spalten: 1
+                
+            </div>
+        
+            <div class="decision-item">
+                <strong>Artikel 3:</strong>
+                Variante: corporate-executive, 
+                Score: 105, 
+                Font: 10.7pt,
+                Spalten: 1
+                
+            </div>
+        
+        
+    </div>
+    
+    
+      
+      
+      
+      
+        <div class="magazine">
+          <!-- Cover Page -->
+          
+      <div class="cover-page">
+        <h1 class="cover-title">Windheulen</h1>
+        <div class="cover-issue">Ausgabe 20250813</div>
+        <div class="cover-date">12. Dezember 1969</div>
+      </div>
+    
+          
+          <!-- Table of Contents -->
+          
+      <div class="toc-page">
+        <h2 class="toc-title">Inhalt</h2>
+    
+        <div class="toc-section">
+          <h3 class="toc-section-title">Fiktion</h3>
+      
+          <div class="toc-entry">
+            <span class="toc-article-title">Die Kühle Hitzewelle</span>
+            <span class="toc-author">MagCast Redaktion</span>
+            <span class="toc-page-number">3</span>
+          </div>
+        
+          <div class="toc-entry">
+            <span class="toc-article-title">Der Flüstern des Windes</span>
+            <span class="toc-author">MagCast Redaktion</span>
+            <span class="toc-page-number">4</span>
+          </div>
+        
+          <div class="toc-entry">
+            <span class="toc-article-title">Geflüster und Warnungen</span>
+            <span class="toc-author">MagCast Redaktion</span>
+            <span class="toc-page-number">5</span>
+          </div>
+        </div></div>
+          
+          <!-- Articles -->
+          
+        <article class="magazine-article" style="page-break-before: auto;">
+          <style scoped>
+            
+      .article-content {
+        font-size: 10.7pt;
+        line-height: 1.52;
+        column-count: 1;
+        column-gap: 24px;
+        column-fill: balance;
+        orphans: 2;
+        widows: 2;
+        hyphens: auto;
+      }
+
+      .article-title {
+        font-size: 30pt;
+        line-height: 1.2;
+        margin-bottom: 12pt;
+        column-span: all;
+        break-after: avoid;
+      }
+
+      .article-dek {
+        font-size: 13pt;
+        line-height: 1.4;
+        margin-bottom: 18pt;
+        column-span: all;
+        font-weight: 500;
+        break-after: avoid;
+      }
+
+      .article-author {
+        font-size: 10pt;
+        margin-bottom: 24pt;
+        column-span: all;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        break-after: avoid;
+      }
+
+      .article-body p {
+        margin-bottom: 9pt;
+        break-inside: avoid-column;
+      }
+
+      .article-body p:first-child::first-letter {
+        font-size: 37pt;
+        line-height: 1;
+        float: left;
+        margin: 0 8pt 0 0;
+        font-weight: bold;
+      }
+    
+        .pullquote {
+          font-size: 15pt;
+          line-height: 1.3;
+          font-weight: bold;
+          margin: 18pt 0;
+          padding: 12pt 0;
+          border-top: 2px solid #333;
+          border-bottom: 2px solid #333;
+          column-span: all;
+          break-inside: avoid;
+        }
+      
+      .inline-image {
+        width: 100%;
+        margin: 12pt 0;
+        break-inside: avoid;
+      }
+
+      .image-caption {
+        font-size: 9pt;
+        line-height: 1.3;
+        margin-top: 6pt;
+        font-style: italic;
+        color: #666;
+      }
+
+      .image-credit {
+        font-size: 8pt;
+        color: #999;
+        margin-top: 3pt;
+      }
+    
+          </style>
+          
+      <header class="article-header">
+        <h1 class="article-title">Die Kühle Hitzewelle</h1>
+        
+        <div class="article-author">Von MagCast Redaktion</div>
+      </header>
+    
+      <div class="article-content">
+        <div class="article-body">
+          <p>Berlin, 2025. Eine Stadt, in der die milden deutschen Morgen so schwül geworden waren wie eine Telenovela-Hauptdarstellerin. Lena Müller, eine Frau mit trockenem Witz und noch trockenerer Haut dank der ständigen klimatisierten Luft, begrüßte die Morgendämmerung mit aller Begeisterung einer Person, die im Begriff ist, einen Vortrag über die Feinheiten der Quantenphysik zu besuchen.</p><p>Lenas Wohnung war ein Sinnbild für staatlich verordnete Effizienz. Die Möbel, so fade wie die Bürokratie, die sie entworfen hatte, waren strategisch für ein optimales Leben platziert, so stand es zumindest in der Broschüre der Regierung. Die Klimaanlage, ein begehrtes Gut, summte leise im Hintergrund und kämpfte darum, die vorgeschriebenen 19°C so tropisch wirken zu lassen, wie die Regierung behauptete, dass sie es waren. Lena fand sich oft in eine Decke gehüllt wieder, während sie sich an die Tage erinnerte, als der Sommer sich tatsächlich wie Sommer anfühlte.</p><p>Ihr Balkon war ihr morgendliches Refugium. Der kleine Raum, von dem aus sie die Welt außerhalb der Grenzen ihres staatlich verordneten Lebens beobachten konnte. Heute blinkte das staatlich verordnete Temperaturmessgerät auf erschreckend heißen 19°C. Das Gerät war so gesprächig wie eine Klatschtante und informierte, warnte und schaltete manchmal Lena wegen ihres CO2-Fußabdrucks.</p><p>Als sie die Stadt überblickte, bemerkte sie die Dächer, die mit Solarpaneelen bedeckt waren, und die Straßen unten mit Fahrrädern und elektrischen Gemeinschaftsfahrgemeinschaften, wo einst die mächtigen deutschen Autos frei herumfuhren. Die Gesetze der Grünen Revolution hatten sie gezähmt und zu gut erzogenen Haustieren gemacht. Lena konnte nicht entscheiden, ob es Fortschritt oder Komödie war.</p><p>In der Küche wartete Lenas Frühstück – ein Paket in Recyclingpapier gewickelt, dessen Inhalt so aufregend war wie ein unbeschriebenes Buch. Es war der Tag der pflanzenbasierten Kost, schon wieder. Der sojabasierte Toast und der Gemüseaufstrich saßen auf ihrem Teller, als würden sie ihr einen Gefallen tun. Sie betrachtete den Toast und beschloss, ihn "Friedrich" zu nennen. Ihm einen Namen zu geben, machte ihn irgendwie sympathischer, und das Essen eines Freundes war in Lenas Buch ein kleiner Akt des Widerstands.
+          <blockquote class="pullquote">
+            Eine Stadt, in der die milden deutschen Morgen so schwül geworden waren wie eine Telenovela-Hauptdarstellerin
+          </blockquote>
+        </p><p>Während sie an Friedrich kaute, betrachtete sie die alten Fotos am Kühlschrank – Bilder ihrer Familie auf den Weihnachtsmärkten, ihrer Großeltern auf einem Musikfestival. Sie sahen so unbeschwert aus. Lena hatte das Gefühl, Bilder einer ausgestorbenen Art zu betrachten.</p><p>Ihr Handgelenk vibrierte sanft. Der Gesundheits-Tracker, ein ständiger Begleiter, wollte Aufmerksamkeit wie ein vernachlässigtes Haustier. Es zeigte ihre Vitalfunktionen an, überwachte ihr Verhalten und erinnerte sie daran, dass sie immer beobachtet wurde. Es war wie das Tragen eines wachsamen Babysitters an ihrem Handgelenk.</p>
+        </div>
+      </div>
+    
+        </article>
+      
+        <article class="magazine-article" style="page-break-before: auto;">
+          <style scoped>
+            
+      .article-content {
+        font-size: 10.7pt;
+        line-height: 1.52;
+        column-count: 1;
+        column-gap: 24px;
+        column-fill: balance;
+        orphans: 2;
+        widows: 2;
+        hyphens: auto;
+      }
+
+      .article-title {
+        font-size: 30pt;
+        line-height: 1.2;
+        margin-bottom: 12pt;
+        column-span: all;
+        break-after: avoid;
+      }
+
+      .article-dek {
+        font-size: 13pt;
+        line-height: 1.4;
+        margin-bottom: 18pt;
+        column-span: all;
+        font-weight: 500;
+        break-after: avoid;
+      }
+
+      .article-author {
+        font-size: 10pt;
+        margin-bottom: 24pt;
+        column-span: all;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        break-after: avoid;
+      }
+
+      .article-body p {
+        margin-bottom: 9pt;
+        break-inside: avoid-column;
+      }
+
+      .article-body p:first-child::first-letter {
+        font-size: 37pt;
+        line-height: 1;
+        float: left;
+        margin: 0 8pt 0 0;
+        font-weight: bold;
+      }
+    
+        .pullquote {
+          font-size: 15pt;
+          line-height: 1.3;
+          font-weight: bold;
+          margin: 18pt 0;
+          padding: 12pt 0;
+          border-top: 2px solid #333;
+          border-bottom: 2px solid #333;
+          column-span: all;
+          break-inside: avoid;
+        }
+      
+      .inline-image {
+        width: 100%;
+        margin: 12pt 0;
+        break-inside: avoid;
+      }
+
+      .image-caption {
+        font-size: 9pt;
+        line-height: 1.3;
+        margin-top: 6pt;
+        font-style: italic;
+        color: #666;
+      }
+
+      .image-credit {
+        font-size: 8pt;
+        color: #999;
+        margin-top: 3pt;
+      }
+    
+          </style>
+          
+      <header class="article-header">
+        <h1 class="article-title">Der Flüstern des Windes</h1>
+        
+        <div class="article-author">Von MagCast Redaktion</div>
+      </header>
+    
+      <div class="article-content">
+        <div class="article-body">
+          <p>Der Park war nun sauberer als eine Chirurgenklinge und Lena fühlte sich, als wär sie durch eine Waschstraße gezerrt worden. Die Bürger um sie herum schienen ihre Aufgabe mit einer Hingabe zu erfüllen, die an religiösen Eifer grenzte. Aber Lena... Lena fühlte sich verändert. Diese kleine Broschüre in ihrer Tasche hatte etwas in ihr entzündet.</p><p>Plötzlich hörte sie ein Rascheln. Der Wind nahm zu und die Bäume begannen, wie in einem alten Tanz, zu wogen. Die Menschen um sie herum schienen verängstigt, als würde der Wind ihre sorgfältig sortierten Leben durcheinanderbringen. Die Ansammlung von Blättern formte seltsame Muster auf dem Boden und Lena spürte eine Art Ziehen, als würde die Natur sie rufen.</p><p>"Komm schon, das ist nur ein bisschen Wind!", rief eine Stimme, die im Kontrast zu den besorgten Gesichtern um sie herum lässig und fast amüsiert klang. Lena drehte sich um und sah einen jungen Mann, dessen Augen voller Heiterkeit funkelten. Er trug eine einfache Jacke und eine Mütze, unter der ein paar Strähnen zerzausten Haares hervorlugten.</p><p>"Was machen Sie hier?", fragte Lena mit einer Mischung aus Neugier und Vorsicht.</p><p>"Ich könnte Sie dasselbe fragen", erwiderte er mit einem Grinsen. "Aber ich bin hier, weil ich den Bäumen gerne beim Tanzen zuschaue."</p><p>Lena lächelte unwillkürlich. "Ich bin Lena", sagte sie.</p><p>"Ah, Lena. Ich bin Busan", sagte er und machte eine übertriebene Verbeugung.
+          <blockquote class="pullquote">
+            Die Bürger um sie herum schienen ihre Aufgabe mit einer Hingabe zu erfüllen, die an religiösen Eifer grenzte
+          </blockquote>
+        </p><p>Plötzlich fiel ein Ast von einem der Bäume. Die Menschen schrien und rannten durcheinander. Busan packte Lenas Hand und zog sie mit sich. Sie rannten zwischen den Bäumen hindurch, während der Wind um sie herum wirbelte.</p><p>Als sie schließlich an einem abgelegenen Ort im Park zur Ruhe kamen, bemerkte Lena eine Broschüre, die Busan festhielt. Es war eine ähnliche Broschüre wie die, die sie gefunden hatte.</p><p>"Ist das...?", begann sie.</p><p>"Ja", unterbrach Busan. "Es ist Zeit, dass wir aufhören zu flüstern."</p>
+        </div>
+      </div>
+    
+        </article>
+      
+        <article class="magazine-article" style="page-break-before: auto;">
+          <style scoped>
+            
+      .article-content {
+        font-size: 10.7pt;
+        line-height: 1.52;
+        column-count: 1;
+        column-gap: 24px;
+        column-fill: balance;
+        orphans: 2;
+        widows: 2;
+        hyphens: auto;
+      }
+
+      .article-title {
+        font-size: 30pt;
+        line-height: 1.2;
+        margin-bottom: 12pt;
+        column-span: all;
+        break-after: avoid;
+      }
+
+      .article-dek {
+        font-size: 13pt;
+        line-height: 1.4;
+        margin-bottom: 18pt;
+        column-span: all;
+        font-weight: 500;
+        break-after: avoid;
+      }
+
+      .article-author {
+        font-size: 10pt;
+        margin-bottom: 24pt;
+        column-span: all;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        break-after: avoid;
+      }
+
+      .article-body p {
+        margin-bottom: 9pt;
+        break-inside: avoid-column;
+      }
+
+      .article-body p:first-child::first-letter {
+        font-size: 37pt;
+        line-height: 1;
+        float: left;
+        margin: 0 8pt 0 0;
+        font-weight: bold;
+      }
+    
+        .pullquote {
+          font-size: 15pt;
+          line-height: 1.3;
+          font-weight: bold;
+          margin: 18pt 0;
+          padding: 12pt 0;
+          border-top: 2px solid #333;
+          border-bottom: 2px solid #333;
+          column-span: all;
+          break-inside: avoid;
+        }
+      
+      .inline-image {
+        width: 100%;
+        margin: 12pt 0;
+        break-inside: avoid;
+      }
+
+      .image-caption {
+        font-size: 9pt;
+        line-height: 1.3;
+        margin-top: 6pt;
+        font-style: italic;
+        color: #666;
+      }
+
+      .image-credit {
+        font-size: 8pt;
+        color: #999;
+        margin-top: 3pt;
+      }
+    
+          </style>
+          
+      <header class="article-header">
+        <h1 class="article-title">Geflüster und Warnungen</h1>
+        
+        <div class="article-author">Von MagCast Redaktion</div>
+      </header>
+    
+      <div class="article-content">
+        <div class="article-body">
+          <p>Lena betrat das Café Zeitgeist, ein malerisches kleines Lokal, dessen Wände mit sepiafarbenen Fotografien aus einer Welt, die einmal war, geschmückt waren. Der Duft von frisch gemahlenem Kaffee wehte durch die Luft wie eine alte Melodie. Doch dieses melodische Aroma hatte eine besondere Note: Es duftete schwach nach Algen und Seetang, einem obligatorischen Zusatzstoff, der vom Ministerium für Klimastabilität zum Ausgleich der Kohlenstoffemissionen vorgeschrieben ist.</p><p>Maria mit ihren feuerroten Haaren, die ihr in Kaskaden über die Schultern fielen, winkte von einem Ecktisch aus, ihre Augen leuchteten wie der erste Sonnenaufgang.</p><p>Das Café war ein Mosaik aus Vergangenheit und Gegenwart. In einer Ecke nippte ein Klimareinheitsinspektor an seinem Kräutertee, dem offiziellen Getränk für Regierungsbeamte, und seine grüne Armbinde mit dem Emblem eines Baumes und einem Auge glitzerte im Licht. In einer anderen Ecke flüsterte eine Gruppe von Senioren bei einer Tasse Forbidden Black – einer Kaffeemischung, die an die Zeit vor den Zusatzstoffen erinnerte.</p><p>"Dich habe ich ja ewig nicht mehr gesehen!" rief Maria aus, als Lena sich auf dem Stuhl ihr gegenüber niederließ. Sie bestellten ihre Kaffees – einen Americano für Lena und einen Cappuccino mit extra Schaum für Maria. Der Kaffee kam, und Lena bemerkte ein kleines Kärtchen auf der Untertasse, auf dem stand: "Genießen Sie Ihre emissionsarme Kaffeemischung – vom Ministerium für Klimastabilität."</p><p>Sie nippten einen Moment lang schweigend an ihrem Kaffee und genossen die Gesellschaft des anderen.</p><p>"Du scheinst... abgelenkt zu sein", wagte Maria und ihre Augen verengten sich ein wenig.</p><p>Lenas Finger trommelten auf die Broschüre in ihrer Tasche. "Ich habe das hier gefunden", sagte sie und schob es über den Tisch.
+          <blockquote class="pullquote">
+            Der Duft von frisch gemahlenem Kaffee wehte durch die Luft wie eine alte Melodie
+          </blockquote>
+        </p><p>Maria überflog sie, und ihr Gesicht wurde noch eine Spur blasser. "Oh, das Flüstern des Windes in Papierform", murmelte sie.</p><p>"Was meinst du damit?" Lena lehnte sich vor.</p><p>Maria sah sich um und beugte sich dann vor. "Die Kinder kommen mit Märchen in die Schule, weißt du. Geschichten, die ihre Großeltern ihnen erzählen – von einem Himmel, der blauer ist als die Glückspillen der Regierung, von Wintern, die beißen, und von Sommern, die streicheln."</p><p>Lenas Augenbrauen schossen in die Höhe. "Aber der Schutzbund sagt ..."</p><p>"Die PA", unterbrach Maria, "ist wie ein Muttervogel, der die Welt auffrisst und uns nur das füttert, was er uns schmackhaft machen will." Ihre Stimme war ein Flüstern, kaum hörbar durch das Klirren der Kaffeetassen.</p>
+        </div>
+      </div>
+    
+        </article>
+      
+          
+          <!-- Imprint -->
+          
+      <div class="imprint-page">
+        <h2 class="imprint-title">Impressum</h2>
+        
+        <div class="imprint-section">
+          <strong>Herausgeber:</strong><br>
+          MagCast Publishing GmbH<br>
+          Musterstraße 123<br>
+          12345 Musterstadt
+        </div>
+        
+        <div class="imprint-section">
+          <strong>Redaktion:</strong><br>
+          Chefredaktion: Max Mustermann<br>
+          E-Mail: redaktion@magcast.de
+        </div>
+        
+        <div class="imprint-section">
+          <strong>Ausgabe:</strong><br>
+          Windheulen - 20250813<br>
+          Erscheinungsdatum: 12.12.1969
+        </div>
+        
+        <div class="imprint-section">
+          <strong>Technische Umsetzung:</strong><br>
+          Automatisiert erstellt mit MagCast Publishing Engine<br>
+          Template: Corporate Pack vv1.8.2
+        </div>
+        
+        <div class="imprint-section">
+          <strong>Copyright:</strong><br>
+          Alle Rechte vorbehalten. Nachdruck, auch auszugsweise, nur mit ausdrücklicher Genehmigung des Verlags.
+        </div>
+      </div>
+    
+        </div>
+      
+      
+    
+</body>
+</html>
