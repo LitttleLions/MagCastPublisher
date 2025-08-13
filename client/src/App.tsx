@@ -10,6 +10,7 @@ import Templates from "@/pages/templates";
 import RenderQueue from "@/pages/render-queue";
 import Assets from "@/pages/assets";
 import Publications from "@/pages/publications";
+import LayoutEngine from "@/pages/layout-engine";
 import MainLayout from "@/components/layout/main-layout";
 
 function Router() {
@@ -22,6 +23,7 @@ function Router() {
         <Route path="/render-queue" component={RenderQueue} />
         <Route path="/assets" component={Assets} />
         <Route path="/publications" component={Publications} />
+        <Route path="/layout-engine" component={LayoutEngine} />
         <Route component={NotFound} />
       </Switch>
     </MainLayout>

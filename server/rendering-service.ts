@@ -40,9 +40,9 @@ export class RenderingService {
 
   async processRenderJob(request: RenderRequest): Promise<void> {
     const { jobId, issueId, templatePackId, renderer, options } = request;
-    
+
     console.log(`Starting render job ${jobId} for issue ${issueId}`);
-    
+
     // Create abort controller for this job
     const abortController = new AbortController();
     this.activeJobs.set(jobId, abortController);
@@ -118,6 +118,7 @@ export class RenderingService {
       let outputPath: string;
       let renderTime: number;
       let warnings: string[] = [];
+      let decisions = template.metadata.layoutDecisions; // Store layout decisions
 
       // Try PDF rendering first, with full error handling
       let pdfSuccess = false;
@@ -127,17 +128,17 @@ export class RenderingService {
         const validation = await pdfRenderer.validateTemplate(template);
         if (validation.isValid) {
           const renderResult = await pdfRenderer.renderPDF(template, options);
-          
+
           // Save PDF to disk
           const filename = `${issue.issueId}-${templatePack.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.pdf`;
           const pdfPath = join(this.outputDir, filename);
           writeFileSync(pdfPath, renderResult.buffer);
-          
+
           outputPath = `/api/downloads/${filename}`;
           renderTime = renderResult.renderTime;
           warnings = renderResult.warnings;
           pdfSuccess = true;
-          
+
           console.log(`PDF saved to ${pdfPath}, size: ${renderResult.buffer.length} bytes`);
           } else {
             console.log(`Template validation failed: ${validation.errors.join(', ')}`);
@@ -154,11 +155,11 @@ export class RenderingService {
         console.log('Falling back to HTML preview generation');
         const filename = `${issue.issueId}-${templatePack.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`;
         const htmlResult = await htmlRenderer.renderHTML(template, filename);
-        
+
         outputPath = htmlResult.htmlPath;
         renderTime = htmlResult.renderTime;
         warnings.push('PDF rendering unavailable in this environment, generated HTML preview instead');
-        
+
         console.log(`HTML preview saved: ${htmlResult.htmlPath}`);
       }
 
@@ -186,7 +187,7 @@ export class RenderingService {
 
     } catch (error) {
       console.error(`Render job ${jobId} failed:`, error);
-      
+
       await this.updateJobProgress(jobId, {
         status: 'failed',
         progress: 0,
@@ -204,14 +205,14 @@ export class RenderingService {
     if (abortController) {
       abortController.abort();
       this.activeJobs.delete(jobId);
-      
+
       await this.updateJobProgress(jobId, {
         status: 'failed',
         progress: 0,
         message: 'Job cancelled by user',
         errors: ['Job was cancelled'],
       });
-      
+
       return true;
     }
     return false;
@@ -220,17 +221,19 @@ export class RenderingService {
   private async updateJobProgress(jobId: string, progress: Partial<RenderProgress>): Promise<void> {
     try {
       const updateData: any = {};
-      
+
       if (progress.status) updateData.status = progress.status;
       if (progress.progress !== undefined) updateData.progress = progress.progress;
       if (progress.message) updateData.errorMessage = progress.message;
       if (progress.pdfPath) updateData.pdfUrl = progress.pdfPath;
       if (progress.errors) updateData.errorMessage = progress.errors.join('; ');
-      
+      if (progress.warnings) updateData.warnings = progress.warnings;
+      if (progress.metadata) updateData.metadata = progress.metadata; // Add metadata to updateData
+
       if (progress.status === 'processing' && !updateData.startedAt) {
         updateData.startedAt = new Date();
       }
-      
+
       if (progress.status === 'completed' || progress.status === 'failed') {
         updateData.completedAt = new Date();
       }
@@ -260,7 +263,9 @@ export class RenderingService {
   private async loadArticles(issueId: string): Promise<Article[]> {
     const articles = await storage.getArticlesByIssue(issueId);
     if (articles.length === 0) {
-      throw new Error(`No articles found for issue: ${issueId}`);
+      // Changed to return empty array instead of throwing error for cases where no articles exist but rendering should still proceed.
+      console.warn(`No articles found for issue: ${issueId}`);
+      return [];
     }
     return articles;
   }
@@ -268,12 +273,12 @@ export class RenderingService {
   private async loadImages(issueId: string): Promise<Image[]> {
     const articles = await storage.getArticlesByIssue(issueId);
     const allImages: Image[] = [];
-    
+
     for (const article of articles) {
       const images = await storage.getImagesByArticle(article.id);
       allImages.push(...images);
     }
-    
+
     return allImages;
   }
 
@@ -320,7 +325,7 @@ export class RenderingService {
       });
     }
     this.activeJobs.clear();
-    
+
     // Close PDF renderer
     await pdfRenderer.close();
   }

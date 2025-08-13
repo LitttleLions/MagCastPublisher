@@ -303,10 +303,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Layout Engine stats endpoint
   app.get('/api/layout-engine/stats', async (req, res) => {
     try {
-      const mockStats = {
-        totalDecisions: 8,
-        averageScore: 95,
-        lastDecisionTime: "Vor 2 Stunden",
+      // Get real data from database
+      const jobs = await storage.getRenderJobs();
+      const completedJobs = jobs.filter(j => j.status === 'completed');
+      
+      // Calculate real statistics
+      const totalDecisions = completedJobs.length;
+      const averageScore = totalDecisions > 0 
+        ? Math.round(completedJobs.reduce((sum, job) => sum + (job.metadata?.score || 85), 0) / totalDecisions)
+        : 0;
+      
+      const lastJob = completedJobs.sort((a, b) => 
+        new Date(b.completedAt || b.createdAt).getTime() - new Date(a.completedAt || a.createdAt).getTime()
+      )[0];
+      
+      const lastDecisionTime = lastJob 
+        ? new Date(lastJob.completedAt || lastJob.createdAt).toLocaleString('de-DE', {
+            day: '2-digit',
+            month: '2-digit', 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        : "Keine Entscheidungen vorhanden";
+
+      // Get recent decisions from completed jobs
+      const recentDecisions = await Promise.all(
+        completedJobs.slice(0, 10).map(async (job) => {
+          const articles = await storage.getArticlesByIssue(job.issueId);
+          const mainArticle = articles[0];
+          
+          return {
+            articleId: mainArticle?.id || job.id,
+            articleTitle: mainArticle?.title || "Unbekannter Artikel",
+            variant: {
+              id: job.templatePackId,
+              columns: 2, // Default
+            },
+            fontSize: job.metadata?.fontSize || 10.0,
+            columnCount: job.metadata?.columns || 2,
+            score: job.metadata?.score || 85,
+            warnings: job.metadata?.warnings || [],
+            timestamp: new Date(job.completedAt || job.createdAt).toLocaleString('de-DE', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            }),
+          };
+        })
+      );
+
+      const stats = {
+        totalDecisions,
+        averageScore,
+        lastDecisionTime,
         activeRules: {
           typography: {
             font_min: 9.5,
@@ -324,37 +376,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             max_images_per_column: 2,
           },
         },
-        recentDecisions: [
-          {
-            articleId: "artikel-1",
-            articleTitle: "Wirtschaftsaufschwung in der Ostseeregion",
-            variant: {
-              id: "magazine-editorial",
-              columns: 2,
-            },
-            fontSize: 9.7,
-            columnCount: 2,
-            score: 115,
-            warnings: [],
-            timestamp: "Vor 2 Stunden",
-          },
-          {
-            articleId: "artikel-2",
-            articleTitle: "Demo Artikel",
-            variant: {
-              id: "modern-clean",
-              columns: 2,
-            },
-            fontSize: 10.0,
-            columnCount: 2,
-            score: 85,
-            warnings: ["2 columns may be too many for 46 words"],
-            timestamp: "Vor 3 Stunden",
-          },
-        ],
+        recentDecisions,
       };
 
-      res.json(mockStats);
+      res.json(stats);
     } catch (error) {
       console.error('Error fetching layout engine stats:', error);
       res.status(500).json({ error: 'Failed to fetch layout engine stats' });
