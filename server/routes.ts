@@ -2,7 +2,10 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertIssueSchema, insertRenderJobSchema, jsonIssueSchema } from "@shared/schema";
+import { renderingService } from "./rendering-service";
 import { z } from "zod";
+import { join } from "path";
+import { existsSync } from "fs";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Issues
@@ -121,30 +124,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertRenderJobSchema.parse(req.body);
       const job = await storage.createRenderJob(validatedData);
       
-      // Simulate job processing
-      setTimeout(async () => {
-        await storage.updateRenderJob(job.id, {
-          status: "processing",
-          progress: 25,
-          startedAt: new Date(),
-        });
-        
-        setTimeout(async () => {
-          await storage.updateRenderJob(job.id, {
-            status: "processing",
-            progress: 75,
-          });
-          
-          setTimeout(async () => {
-            await storage.updateRenderJob(job.id, {
-              status: "completed",
-              progress: 100,
-              completedAt: new Date(),
-              pdfUrl: `/api/downloads/${job.id}.pdf`,
-            });
-          }, 2000);
-        }, 3000);
-      }, 1000);
+      // Start real rendering process
+      renderingService.processRenderJob({
+        jobId: job.id,
+        issueId: job.issueId,
+        templatePackId: job.templatePackId,
+        renderer: job.renderer as any,
+      }).catch(error => {
+        console.error(`Background render job ${job.id} failed:`, error);
+      });
       
       res.status(201).json(job);
     } catch (error) {
@@ -212,14 +200,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cancel render job
+  app.post("/api/render-jobs/:id/cancel", async (req, res) => {
+    try {
+      const cancelled = await renderingService.cancelRenderJob(req.params.id);
+      if (cancelled) {
+        res.json({ message: "Job cancelled successfully" });
+      } else {
+        res.status(404).json({ error: "Job not found or not cancellable" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to cancel render job" });
+    }
+  });
+
+  // Generate preview
+  app.post("/api/preview", async (req, res) => {
+    try {
+      const { issueId, templatePackId } = req.body;
+      if (!issueId || !templatePackId) {
+        return res.status(400).json({ error: "issueId and templatePackId are required" });
+      }
+
+      const preview = await renderingService.generatePreview(issueId, templatePackId);
+      
+      // Convert screenshots to base64 for JSON response
+      const screenshots = preview.screenshots.map(buffer => 
+        `data:image/png;base64,${buffer.toString('base64')}`
+      );
+      
+      res.json({
+        screenshots,
+        metadata: preview.metadata,
+      });
+    } catch (error) {
+      res.status(500).json({ error: `Failed to generate preview: ${error.message}` });
+    }
+  });
+
+  // Download generated PDFs
+  app.get("/api/downloads/:filename", (req, res) => {
+    try {
+      const filename = req.params.filename;
+      const pdfPath = join("./generated-pdfs", filename);
+      
+      if (!existsSync(pdfPath)) {
+        return res.status(404).json({ error: "PDF not found" });
+      }
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.sendFile(pdfPath, { root: "." });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to download PDF" });
+    }
+  });
+
   // System Health
   app.get("/api/health", async (req, res) => {
     try {
+      const activeJobs = renderingService.getActiveJobCount();
       const health = {
-        prince: { status: "online", message: "Renderer operational" },
+        prince: { status: "online", message: "PDF Renderer operational" },
         assets: { status: "online", message: "Pipeline operational" },
         webhooks: { status: "delayed", message: "Service delayed" },
-        queue: { status: "online", message: "3 jobs in queue" },
+        queue: { status: "online", message: `${activeJobs} active jobs` },
       };
       res.json(health);
     } catch (error) {

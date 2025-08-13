@@ -71,10 +71,26 @@ export class MemStorage implements IStorage {
       version: "v2.1.0",
       isActive: true,
       variants: [
-        { id: "A", columns: 2, hero: { min_vh: 36, max_vh: 52 } },
-        { id: "B", columns: 3, hero: { min_vh: 30, max_vh: 42 } }
+        { 
+          id: "modern-clean", 
+          columns: 2, 
+          hero: { min_vh: 30, max_vh: 50 },
+          body: { font_min: 9.5, font_max: 10.5, leading: [1.4, 1.5] },
+          pullquote: { allow: true, min_paragraph: 3 }
+        },
+        { 
+          id: "modern-bold", 
+          columns: 3, 
+          hero: { min_vh: 40, max_vh: 60 },
+          body: { font_min: 9.0, font_max: 10.0, leading: [1.3, 1.4] },
+          pullquote: { allow: true, min_paragraph: 4 }
+        }
       ],
-      rules: { typography: { font_min: 9.5, font_max: 10.5 } },
+      rules: { 
+        typography: { font_min: 9.0, font_max: 10.5, line_height_min: 1.3, line_height_max: 1.5 },
+        layout: { max_columns: 3, min_text_length: 150, max_text_length: 1800 },
+        images: { hero_required_words: 200, max_images_per_column: 2 }
+      },
       createdAt: new Date(),
     };
 
@@ -83,12 +99,27 @@ export class MemStorage implements IStorage {
       name: "Corporate Pack",
       description: "Professional business report styling",
       version: "v1.8.2",
-      isActive: false,
+      isActive: true,
       variants: [
-        { id: "A", columns: 1, hero: { min_vh: 25, max_vh: 35 } },
-        { id: "B", columns: 2, hero: { min_vh: 20, max_vh: 30 } }
+        { 
+          id: "corporate-professional", 
+          columns: 2, 
+          hero: { min_vh: 25, max_vh: 40 },
+          body: { font_min: 10.0, font_max: 11.0, leading: [1.45, 1.55] },
+          pullquote: { allow: false, min_paragraph: 0 }
+        },
+        { 
+          id: "corporate-executive", 
+          columns: 1,
+          body: { font_min: 10.5, font_max: 11.5, leading: [1.5, 1.6] },
+          pullquote: { allow: true, min_paragraph: 2 }
+        }
       ],
-      rules: { typography: { font_min: 10, font_max: 11 } },
+      rules: { 
+        typography: { font_min: 10.0, font_max: 11.5, line_height_min: 1.45, line_height_max: 1.6 },
+        layout: { max_columns: 2, min_text_length: 200, max_text_length: 2500 },
+        images: { hero_required_words: 300, max_images_per_column: 1 }
+      },
       createdAt: new Date(),
     };
 
@@ -99,11 +130,33 @@ export class MemStorage implements IStorage {
       version: "v3.0.1",
       isActive: false,
       variants: [
-        { id: "A", columns: 2, hero: { min_vh: 40, max_vh: 60 } },
-        { id: "B", columns: 3, hero: { min_vh: 35, max_vh: 50 } },
-        { id: "C", columns: 1, hero: { min_vh: 50, max_vh: 70 } }
+        { 
+          id: "magazine-editorial", 
+          columns: 2, 
+          hero: { min_vh: 35, max_vh: 55 },
+          body: { font_min: 9.5, font_max: 10.0, leading: [1.35, 1.45] },
+          pullquote: { allow: true, min_paragraph: 3 }
+        },
+        { 
+          id: "magazine-feature", 
+          columns: 3, 
+          hero: { min_vh: 45, max_vh: 65 },
+          body: { font_min: 9.0, font_max: 9.5, leading: [1.3, 1.4] },
+          pullquote: { allow: true, min_paragraph: 4 }
+        },
+        { 
+          id: "magazine-lifestyle", 
+          columns: 2, 
+          hero: { min_vh: 50, max_vh: 70 },
+          body: { font_min: 9.5, font_max: 10.5, leading: [1.4, 1.5] },
+          pullquote: { allow: true, min_paragraph: 2 }
+        }
       ],
-      rules: { typography: { font_min: 9, font_max: 12 } },
+      rules: { 
+        typography: { font_min: 9.0, font_max: 10.5, line_height_min: 1.3, line_height_max: 1.5 },
+        layout: { max_columns: 3, min_text_length: 100, max_text_length: 2200 },
+        images: { hero_required_words: 150, max_images_per_column: 3 }
+      },
       createdAt: new Date(),
     };
 
@@ -127,8 +180,12 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const now = new Date();
     const issue: Issue = {
-      ...insertIssue,
       id,
+      title: insertIssue.title,
+      issueId: insertIssue.issueId,
+      date: insertIssue.date,
+      sections: insertIssue.sections || [],
+      status: insertIssue.status || "draft",
       createdAt: now,
       updatedAt: now,
     };
@@ -161,8 +218,15 @@ export class MemStorage implements IStorage {
   async createArticle(insertArticle: InsertArticle): Promise<Article> {
     const id = randomUUID();
     const article: Article = {
-      ...insertArticle,
       id,
+      title: insertArticle.title,
+      issueId: insertArticle.issueId,
+      type: insertArticle.type,
+      articleId: insertArticle.articleId,
+      section: insertArticle.section,
+      dek: insertArticle.dek || null,
+      author: insertArticle.author,
+      bodyHtml: insertArticle.bodyHtml,
       createdAt: new Date(),
     };
     this.articles.set(id, article);
@@ -190,8 +254,16 @@ export class MemStorage implements IStorage {
   async createImage(insertImage: InsertImage): Promise<Image> {
     const id = randomUUID();
     const image: Image = {
-      ...insertImage,
       id,
+      articleId: insertImage.articleId,
+      src: insertImage.src,
+      role: insertImage.role,
+      caption: insertImage.caption || null,
+      credit: insertImage.credit || null,
+      focalPoint: insertImage.focalPoint || null,
+      dpi: insertImage.dpi || null,
+      width: insertImage.width || null,
+      height: insertImage.height || null,
     };
     this.images.set(id, image);
     return image;
@@ -213,8 +285,13 @@ export class MemStorage implements IStorage {
   async createTemplatePack(insertPack: InsertTemplatePack): Promise<TemplatePack> {
     const id = randomUUID();
     const pack: TemplatePack = {
-      ...insertPack,
       id,
+      name: insertPack.name,
+      description: insertPack.description || null,
+      version: insertPack.version,
+      isActive: insertPack.isActive || false,
+      variants: insertPack.variants || [],
+      rules: insertPack.rules || {},
       createdAt: new Date(),
     };
     this.templatePacks.set(id, pack);
@@ -244,8 +321,16 @@ export class MemStorage implements IStorage {
   async createRenderJob(insertJob: InsertRenderJob): Promise<RenderJob> {
     const id = randomUUID();
     const job: RenderJob = {
-      ...insertJob,
       id,
+      issueId: insertJob.issueId,
+      templatePackId: insertJob.templatePackId,
+      status: insertJob.status || "queued",
+      progress: insertJob.progress || 0,
+      renderer: insertJob.renderer || "puppeteer",
+      pdfUrl: insertJob.pdfUrl || null,
+      errorMessage: insertJob.errorMessage || null,
+      startedAt: null,
+      completedAt: null,
       createdAt: new Date(),
     };
     this.renderJobs.set(id, job);
@@ -269,8 +354,16 @@ export class MemStorage implements IStorage {
   async createAsset(insertAsset: InsertAsset): Promise<Asset> {
     const id = randomUUID();
     const asset: Asset = {
-      ...insertAsset,
       id,
+      filename: insertAsset.filename,
+      originalUrl: insertAsset.originalUrl,
+      processedUrl: insertAsset.processedUrl || null,
+      mimeType: insertAsset.mimeType,
+      size: insertAsset.size,
+      status: insertAsset.status || "pending",
+      dpi: insertAsset.dpi || null,
+      width: insertAsset.width || null,
+      height: insertAsset.height || null,
       createdAt: new Date(),
     };
     this.assets.set(id, asset);
