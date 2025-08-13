@@ -618,16 +618,22 @@ export default function JsonIngestion() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {magazine.sections && (() => {
-                          let sections = [];
+                        {(() => {
+                          let sections: string[] = [];
                           try {
-                            sections = typeof magazine.sections === 'string' 
-                              ? JSON.parse(magazine.sections) 
-                              : magazine.sections;
+                            if (magazine.sections) {
+                              sections = typeof magazine.sections === 'string' 
+                                ? JSON.parse(magazine.sections) 
+                                : Array.isArray(magazine.sections) 
+                                  ? magazine.sections 
+                                  : [];
+                            }
                           } catch (e) {
+                            console.warn('Failed to parse sections for magazine:', magazine.id, e);
                             sections = [];
                           }
-                          return sections.length > 0 && (
+                          
+                          return sections.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
                               {sections.slice(0, 2).map((section: string, idx: number) => (
                                 <Badge key={idx} variant="outline" className="text-xs">
@@ -640,6 +646,8 @@ export default function JsonIngestion() {
                                 </Badge>
                               )}
                             </div>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">No sections</span>
                           );
                         })()}
                       </TableCell>
