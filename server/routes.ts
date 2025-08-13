@@ -6,6 +6,10 @@ import { renderingService } from "./rendering-service";
 import { z } from "zod";
 import { join } from "path";
 import { existsSync } from "fs";
+import multer from 'multer';
+import path from 'path';
+import { promises as fs } from 'fs';
+import crypto from 'crypto';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Issues
@@ -178,12 +182,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch assets" });
     }
   });
-
-  // Asset upload with multer
-  const multer = require('multer');
-  const path = require('path');
-  const fs = require('fs').promises;
-  const crypto = require('crypto');
 
   // Ensure upload directory exists
   const uploadDir = './uploads/assets';
