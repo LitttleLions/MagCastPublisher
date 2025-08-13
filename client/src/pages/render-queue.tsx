@@ -28,6 +28,8 @@ export default function RenderQueue() {
 
   const { data: jobs = [], isLoading: jobsLoading } = useQuery<RenderJob[]>({
     queryKey: ["/api/render-jobs"],
+    refetchInterval: 1000, // Poll every second for active jobs
+    refetchIntervalInBackground: false,
   });
 
   const { data: issues = [] } = useQuery<Issue[]>({
@@ -243,9 +245,9 @@ export default function RenderQueue() {
                           {job.startedAt && ` • Started: ${formatDate(job.startedAt)}`}
                           {job.completedAt && ` • Completed: ${formatDate(job.completedAt)}`}
                         </p>
-                        {job.status === "completed" && job.successMessage && (
+                        {job.status === "completed" && (
                           <p className="text-xs text-green-600 mt-1">
-                            ✓ {job.successMessage}
+                            ✓ Rendering completed successfully
                           </p>
                         )}
                         {job.status === "failed" && job.errorMessage && (

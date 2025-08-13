@@ -225,14 +225,16 @@ export class RenderingService {
       if (progress.status) updateData.status = progress.status;
       if (progress.progress !== undefined) updateData.progress = progress.progress;
       
-      // Nur Fehlermeldungen in errorMessage speichern
+      // Handle error messages and status messages
       if (progress.errors) {
         updateData.errorMessage = progress.errors.join('; ');
-      } else if (progress.status === 'completed' && progress.message) {
-        // Erfolgsmeldungen separat speichern
-        updateData.successMessage = progress.message;
       } else if (progress.status === 'failed' && progress.message) {
         updateData.errorMessage = progress.message;
+      }
+      
+      // Don't store success messages separately - just clear error messages on success
+      if (progress.status === 'completed' && updateData.errorMessage === undefined) {
+        updateData.errorMessage = null; // Clear any previous errors
       }
       
       if (progress.pdfPath) updateData.pdfUrl = progress.pdfPath;
@@ -240,11 +242,11 @@ export class RenderingService {
       if (progress.metadata) updateData.metadata = progress.metadata;
 
       if (progress.status === 'processing' && !updateData.startedAt) {
-        updateData.startedAt = new Date();
+        updateData.startedAt = new Date().toISOString();
       }
 
       if (progress.status === 'completed' || progress.status === 'failed') {
-        updateData.completedAt = new Date();
+        updateData.completedAt = new Date().toISOString();
       }
 
       await storage.updateRenderJob(jobId, updateData);

@@ -9,6 +9,8 @@ import { type RenderJob } from "@shared/schema";
 export default function RecentJobs() {
   const { data: jobs = [], isLoading } = useQuery<RenderJob[]>({
     queryKey: ["/api/render-jobs"],
+    refetchInterval: 2000, // Poll every 2 seconds
+    refetchIntervalInBackground: false,
   });
 
   const getStatusIcon = (status: string, progress?: number) => {
