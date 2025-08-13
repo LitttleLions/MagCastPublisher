@@ -224,11 +224,20 @@ export class RenderingService {
 
       if (progress.status) updateData.status = progress.status;
       if (progress.progress !== undefined) updateData.progress = progress.progress;
-      if (progress.message) updateData.errorMessage = progress.message;
+      
+      // Nur Fehlermeldungen in errorMessage speichern
+      if (progress.errors) {
+        updateData.errorMessage = progress.errors.join('; ');
+      } else if (progress.status === 'completed' && progress.message) {
+        // Erfolgsmeldungen separat speichern
+        updateData.successMessage = progress.message;
+      } else if (progress.status === 'failed' && progress.message) {
+        updateData.errorMessage = progress.message;
+      }
+      
       if (progress.pdfPath) updateData.pdfUrl = progress.pdfPath;
-      if (progress.errors) updateData.errorMessage = progress.errors.join('; ');
       if (progress.warnings) updateData.warnings = progress.warnings;
-      if (progress.metadata) updateData.metadata = progress.metadata; // Add metadata to updateData
+      if (progress.metadata) updateData.metadata = progress.metadata;
 
       if (progress.status === 'processing' && !updateData.startedAt) {
         updateData.startedAt = new Date();

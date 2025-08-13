@@ -329,6 +329,7 @@ export class MemStorage implements IStorage {
       renderer: insertJob.renderer || "puppeteer",
       pdfUrl: insertJob.pdfUrl || null,
       errorMessage: insertJob.errorMessage || null,
+      successMessage: null,
       startedAt: null,
       completedAt: null,
       createdAt: new Date(),

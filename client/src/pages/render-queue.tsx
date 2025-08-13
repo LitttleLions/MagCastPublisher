@@ -243,6 +243,16 @@ export default function RenderQueue() {
                           {job.startedAt && ` • Started: ${formatDate(job.startedAt)}`}
                           {job.completedAt && ` • Completed: ${formatDate(job.completedAt)}`}
                         </p>
+                        {job.status === "completed" && job.successMessage && (
+                          <p className="text-xs text-green-600 mt-1">
+                            ✓ {job.successMessage}
+                          </p>
+                        )}
+                        {job.status === "failed" && job.errorMessage && (
+                          <p className="text-xs text-red-600 mt-1">
+                            ✗ {job.errorMessage}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
