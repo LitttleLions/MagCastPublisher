@@ -300,6 +300,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Layout Engine stats endpoint
+  app.get('/api/layout-engine/stats', async (req, res) => {
+    try {
+      const mockStats = {
+        totalDecisions: 8,
+        averageScore: 95,
+        lastDecisionTime: "Vor 2 Stunden",
+        activeRules: {
+          typography: {
+            font_min: 9.5,
+            font_max: 10.5,
+            line_height_min: 1.35,
+            line_height_max: 1.5,
+          },
+          layout: {
+            max_columns: 3,
+            min_text_length: 100,
+            max_text_length: 2000,
+          },
+          images: {
+            hero_required_words: 200,
+            max_images_per_column: 2,
+          },
+        },
+        recentDecisions: [
+          {
+            articleId: "artikel-1",
+            articleTitle: "Wirtschaftsaufschwung in der Ostseeregion",
+            variant: {
+              id: "magazine-editorial",
+              columns: 2,
+            },
+            fontSize: 9.7,
+            columnCount: 2,
+            score: 115,
+            warnings: [],
+            timestamp: "Vor 2 Stunden",
+          },
+          {
+            articleId: "artikel-2",
+            articleTitle: "Demo Artikel",
+            variant: {
+              id: "modern-clean",
+              columns: 2,
+            },
+            fontSize: 10.0,
+            columnCount: 2,
+            score: 85,
+            warnings: ["2 columns may be too many for 46 words"],
+            timestamp: "Vor 3 Stunden",
+          },
+        ],
+      };
+
+      res.json(mockStats);
+    } catch (error) {
+      console.error('Error fetching layout engine stats:', error);
+      res.status(500).json({ error: 'Failed to fetch layout engine stats' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
