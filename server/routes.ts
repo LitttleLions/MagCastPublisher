@@ -123,7 +123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertRenderJobSchema.parse(req.body);
       const job = await storage.createRenderJob(validatedData);
-      
+
       // Start real rendering process
       renderingService.processRenderJob({
         jobId: job.id,
@@ -133,7 +133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }).catch(error => {
         console.error(`Background render job ${job.id} failed:`, error);
       });
-      
+
       res.status(201).json(job);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -185,7 +185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const issues = await storage.getIssues();
       const jobs = await storage.getRenderJobs();
       const packs = await storage.getTemplatePacks();
-      
+
       const stats = {
         activeIssues: issues.filter(i => i.status !== "completed").length,
         renderJobs: jobs.length,
@@ -193,7 +193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         templatePacks: packs.length,
         queuedJobs: jobs.filter(j => j.status === "queued").length,
       };
-      
+
       res.json(stats);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch stats" });
@@ -237,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { TemplateGenerator } = await import('./template-generator');
       const templateGenerator = new TemplateGenerator(templatePack);
       const template = await templateGenerator.generateMagazine(issue, articles, allImages);
-      
+
       res.json({
         html: template.html,
         css: template.css,
@@ -253,11 +253,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const filename = req.params.filename;
       const pdfPath = join("./generated-pdfs", filename);
-      
+
       if (!existsSync(pdfPath)) {
         return res.status(404).json({ error: "File not found" });
       }
-      
+
       const isPdf = filename.endsWith('.pdf');
       res.setHeader('Content-Type', isPdf ? 'application/pdf' : 'text/html');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -272,11 +272,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const filename = req.params.filename;
       const htmlPath = join("./generated-previews", filename);
-      
+
       if (!existsSync(htmlPath)) {
         return res.status(404).json({ error: "Preview not found" });
       }
-      
+
       res.setHeader('Content-Type', 'text/html');
       res.sendFile(htmlPath, { root: "." });
     } catch (error) {

@@ -8,9 +8,10 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, FileText, CheckCircle, Plus, Calendar, FolderOpen, BookOpen } from "lucide-react";
+import { Upload, FileText, CheckCircle, Plus, Calendar, FolderOpen, BookOpen, Edit, Save, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface Issue {
   id: string;
@@ -31,6 +32,8 @@ export default function JsonIngestion() {
     date: "",
     sections: ""
   });
+  const [editingIssue, setEditingIssue] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState<{[key: string]: {title: string, issueId: string, date: string}}>({});
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -88,6 +91,29 @@ export default function JsonIngestion() {
       toast({
         title: "Fehler",
         description: error.message || "Issue konnte nicht erstellt werden",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateIssueMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string, data: any }) => {
+      const response = await apiRequest("PATCH", `/api/issues/${id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/issues"] });
+      toast({
+        title: "Erfolg",
+        description: "Issue wurde erfolgreich aktualisiert",
+      });
+      setEditingIssue(null);
+      setEditValues({});
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Fehler",
+        description: error.message || "Issue konnte nicht aktualisiert werden",
         variant: "destructive",
       });
     },
@@ -159,6 +185,43 @@ export default function JsonIngestion() {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('de-DE');
+  };
+
+  const startEditing = (issue: Issue) => {
+    setEditingIssue(issue.id);
+    setEditValues({
+      ...editValues,
+      [issue.id]: {
+        title: issue.title,
+        issueId: issue.issueId,
+        date: issue.date
+      }
+    });
+  };
+
+  const cancelEditing = () => {
+    setEditingIssue(null);
+    setEditValues({});
+  };
+
+  const saveChanges = (issueId: string) => {
+    const changes = editValues[issueId];
+    if (changes) {
+      updateIssueMutation.mutate({
+        id: issueId,
+        data: changes
+      });
+    }
+  };
+
+  const updateEditValue = (issueId: string, field: string, value: string) => {
+    setEditValues({
+      ...editValues,
+      [issueId]: {
+        ...editValues[issueId],
+        [field]: value
+      }
+    });
   };
 
   return (
@@ -258,38 +321,109 @@ export default function JsonIngestion() {
               <p className="text-sm">Erstelle ein neues Issue oder importiere JSON-Daten</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {issues.map((issue) => (
-                <div key={issue.id} className="border border-slate-200 rounded-lg p-4 hover:border-slate-300 transition-colors">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-semibold text-slate-900 truncate">{issue.title}</h3>
-                    <Badge variant={issue.status === "draft" ? "secondary" : "default"}>
-                      {issue.status}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-slate-600 mb-2">
-                    <span className="font-medium">ID:</span> {issue.issueId}
-                  </p>
-                  <div className="flex items-center space-x-2 text-sm text-slate-500 mb-3">
-                    <Calendar className="w-4 h-4" />
-                    <span>{formatDate(issue.date)}</span>
-                  </div>
-                  {issue.sections && issue.sections.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {issue.sections.slice(0, 3).map((section, idx) => (
-                        <Badge key={idx} variant="outline" className="text-xs">
-                          {section}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[200px]">Titel</TableHead>
+                    <TableHead className="w-[120px]">Issue ID</TableHead>
+                    <TableHead className="w-[120px]">Datum</TableHead>
+                    <TableHead className="w-[100px]">Status</TableHead>
+                    <TableHead>Rubriken</TableHead>
+                    <TableHead className="w-[100px]">Aktionen</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {issues.map((issue) => (
+                    <TableRow key={issue.id}>
+                      <TableCell>
+                        {editingIssue === issue.id ? (
+                          <Input
+                            value={editValues[issue.id]?.title || issue.title}
+                            onChange={(e) => updateEditValue(issue.id, 'title', e.target.value)}
+                            className="h-8"
+                          />
+                        ) : (
+                          <span className="font-medium">{issue.title}</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {editingIssue === issue.id ? (
+                          <Input
+                            value={editValues[issue.id]?.issueId || issue.issueId}
+                            onChange={(e) => updateEditValue(issue.id, 'issueId', e.target.value)}
+                            className="h-8"
+                          />
+                        ) : (
+                          <span className="font-mono text-sm">{issue.issueId}</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {editingIssue === issue.id ? (
+                          <Input
+                            type="date"
+                            value={editValues[issue.id]?.date || issue.date}
+                            onChange={(e) => updateEditValue(issue.id, 'date', e.target.value)}
+                            className="h-8"
+                          />
+                        ) : (
+                          <span className="text-sm">{formatDate(issue.date)}</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={issue.status === "draft" ? "secondary" : "default"}>
+                          {issue.status}
                         </Badge>
-                      ))}
-                      {issue.sections.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{issue.sections.length - 3}
-                        </Badge>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
+                      </TableCell>
+                      <TableCell>
+                        {issue.sections && issue.sections.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {issue.sections.slice(0, 2).map((section, idx) => (
+                              <Badge key={idx} variant="outline" className="text-xs">
+                                {section}
+                              </Badge>
+                            ))}
+                            {issue.sections.length > 2 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{issue.sections.length - 2}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {editingIssue === issue.id ? (
+                          <div className="flex space-x-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => saveChanges(issue.id)}
+                              disabled={updateIssueMutation.isPending}
+                            >
+                              <Save className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={cancelEditing}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => startEditing(issue)}
+                          >
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
