@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,7 +35,7 @@ export default function JsonIngestion() {
     jsonData: ""
   });
   const [editValues, setEditValues] = useState<{[key: string]: {title: string, issueId: string, date: string, jsonData: string}}>({});
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -235,7 +234,7 @@ export default function JsonIngestion() {
         }
       ]
     };
-    
+
     setJsonInput(JSON.stringify(sampleJson, null, 2));
   };
 
@@ -295,7 +294,7 @@ export default function JsonIngestion() {
         }
       ]
     };
-    
+
     setJsonInput(JSON.stringify(multiArticleJson, null, 2));
     toast({
       title: "Mehrere Artikel geladen",
@@ -354,9 +353,10 @@ export default function JsonIngestion() {
       },
       sections: (() => {
         try {
-          return typeof magazine.sections === 'string' 
+          const sections = typeof magazine.sections === 'string' 
             ? JSON.parse(magazine.sections) 
-            : magazine.sections || ["Hauptteil", "Service", "Editorial"];
+            : magazine.sections;
+          return Array.isArray(sections) ? sections : ["Hauptteil", "Service", "Editorial"];
         } catch (e) {
           return ["Hauptteil", "Service", "Editorial"];
         }
@@ -409,7 +409,7 @@ export default function JsonIngestion() {
         }
       ]
     };
-    
+
     setJsonInput(JSON.stringify(template, null, 2));
     toast({
       title: "JSON-Vorlage generiert",
@@ -489,7 +489,7 @@ export default function JsonIngestion() {
                       />
                     </div>
                   </div>
-                  
+
                   {/* JSON-Daten */}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -534,7 +534,7 @@ export default function JsonIngestion() {
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex justify-end space-x-2 pt-4 border-t">
                   <Button variant="outline" onClick={() => setCreateMagazineOpen(false)}>
                     Abbrechen

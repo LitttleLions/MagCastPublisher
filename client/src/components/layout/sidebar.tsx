@@ -42,24 +42,18 @@ export default function Sidebar() {
           {navigation.map((item) => {
             const Icon = item.icon;
             const isActive = location === item.href;
-            
+
             return (
-              <Link
-                key={item.name}
-                href={item.href}
-                data-testid={`nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
-              >
-                <a
-                  className={cn(
-                    "flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-colors",
-                    isActive
-                      ? "bg-brand-50 text-brand-700"
-                      : "text-slate-600 hover:bg-slate-50"
-                  )}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{item.name}</span>
-                </a>
+              <Link href={item.href} className={cn(
+                "w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium",
+                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                "transition-colors",
+                isActive 
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground" 
+                  : "text-sidebar-foreground/70"
+              )}>
+                <Icon className="w-5 h-5" />
+                <span>{item.name}</span>
               </Link>
             );
           })}
