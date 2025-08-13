@@ -8,10 +8,11 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, FileText, CheckCircle, Plus, Calendar, FolderOpen, BookOpen, Edit, Save, X } from "lucide-react";
+import { Upload, FileText, CheckCircle, Plus, Calendar, FolderOpen, BookOpen, Edit, Save, X, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface Issue {
   id: string;
@@ -25,21 +26,22 @@ interface Issue {
 
 export default function JsonIngestion() {
   const [jsonInput, setJsonInput] = useState("");
-  const [createIssueOpen, setCreateIssueOpen] = useState(false);
-  const [manualIssue, setManualIssue] = useState({
+  const [createMagazineOpen, setCreateMagazineOpen] = useState(false);
+  const [editingMagazine, setEditingMagazine] = useState<string | null>(null);
+  const [manualMagazine, setManualMagazine] = useState({
     issueId: "",
     title: "",
     date: "",
-    sections: ""
+    sections: "",
+    jsonData: ""
   });
-  const [editingIssue, setEditingIssue] = useState<string | null>(null);
-  const [editValues, setEditValues] = useState<{[key: string]: {title: string, issueId: string, date: string}}>({});
+  const [editValues, setEditValues] = useState<{[key: string]: {title: string, issueId: string, date: string, jsonData: string}}>({});
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch existing issues
-  const { data: issues = [], isLoading: loadingIssues } = useQuery<Issue[]>({
+  // Fetch existing magazines
+  const { data: magazines = [], isLoading: loadingMagazines } = useQuery<Issue[]>({
     queryKey: ["/api/issues"],
   });
 
@@ -56,6 +58,8 @@ export default function JsonIngestion() {
         description: "JSON-Daten wurden erfolgreich verarbeitet",
       });
       setJsonInput("");
+      setManualMagazine({ issueId: "", title: "", date: "", sections: "", jsonData: "" });
+      setCreateMagazineOpen(false);
     },
     onError: (error: any) => {
       toast({
@@ -66,54 +70,106 @@ export default function JsonIngestion() {
     },
   });
 
-  const createIssueMutation = useMutation({
+  const createMagazineMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest("POST", "/api/issues", {
-        issueId: data.issueId,
-        title: data.title,
-        date: data.date,
-        sections: data.sections.split(",").map((s: string) => s.trim()).filter(Boolean),
-        status: "draft"
-      });
-      return response.json();
+      // Falls JSON-Daten vorhanden sind, diese zuerst verarbeiten
+      if (data.jsonData && data.jsonData.trim()) {
+        try {
+          const parsedJson = JSON.parse(data.jsonData);
+          const response = await apiRequest("POST", "/api/process-json", parsedJson);
+          return response.json();
+        } catch (jsonError) {
+          throw new Error("Ungültiges JSON-Format");
+        }
+      } else {
+        // Andernfalls leeres Magazin erstellen
+        const response = await apiRequest("POST", "/api/issues", {
+          issueId: data.issueId,
+          title: data.title,
+          date: data.date,
+          sections: data.sections.split(",").map((s: string) => s.trim()).filter(Boolean),
+          status: "draft"
+        });
+        return response.json();
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/issues"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({
         title: "Erfolg",
-        description: "Issue wurde erfolgreich erstellt",
+        description: "Magazin wurde erfolgreich erstellt",
       });
-      setManualIssue({ issueId: "", title: "", date: "", sections: "" });
-      setCreateIssueOpen(false);
+      setManualMagazine({ issueId: "", title: "", date: "", sections: "", jsonData: "" });
+      setCreateMagazineOpen(false);
     },
     onError: (error: any) => {
       toast({
         title: "Fehler",
-        description: error.message || "Issue konnte nicht erstellt werden",
+        description: error.message || "Magazin konnte nicht erstellt werden",
         variant: "destructive",
       });
     },
   });
 
-  const updateIssueMutation = useMutation({
+  const updateMagazineMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string, data: any }) => {
-      const response = await apiRequest("PATCH", `/api/issues/${id}`, data);
-      return response.json();
+      // Falls JSON-Daten vorhanden sind, diese verarbeiten
+      if (data.jsonData && data.jsonData.trim()) {
+        try {
+          const parsedJson = JSON.parse(data.jsonData);
+          const response = await apiRequest("POST", "/api/process-json", parsedJson);
+          return response.json();
+        } catch (jsonError) {
+          throw new Error("Ungültiges JSON-Format");
+        }
+      } else {
+        // Andernfalls nur Metadaten aktualisieren
+        const response = await apiRequest("PATCH", `/api/issues/${id}`, {
+          title: data.title,
+          issueId: data.issueId,
+          date: data.date
+        });
+        return response.json();
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/issues"] });
       toast({
         title: "Erfolg",
-        description: "Issue wurde erfolgreich aktualisiert",
+        description: "Magazin wurde erfolgreich aktualisiert",
       });
-      setEditingIssue(null);
+      setEditingMagazine(null);
       setEditValues({});
     },
     onError: (error: any) => {
       toast({
         title: "Fehler",
-        description: error.message || "Issue konnte nicht aktualisiert werden",
+        description: error.message || "Magazin konnte nicht aktualisiert werden",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMagazineMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest("DELETE", `/api/issues/${id}`);
+      if (!response.ok) {
+        throw new Error("Magazin konnte nicht gelöscht werden");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/issues"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      toast({
+        title: "Erfolg",
+        description: "Magazin wurde erfolgreich gelöscht",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Fehler",
+        description: error.message || "Magazin konnte nicht gelöscht werden",
         variant: "destructive",
       });
     },
@@ -132,8 +188,8 @@ export default function JsonIngestion() {
     }
   };
 
-  const handleCreateIssue = () => {
-    if (!manualIssue.issueId || !manualIssue.title || !manualIssue.date) {
+  const handleCreateMagazine = () => {
+    if (!manualMagazine.issueId || !manualMagazine.title || !manualMagazine.date) {
       toast({
         title: "Fehlende Angaben",
         description: "Bitte fülle alle Pflichtfelder aus",
@@ -141,7 +197,7 @@ export default function JsonIngestion() {
       });
       return;
     }
-    createIssueMutation.mutate(manualIssue);
+    createMagazineMutation.mutate(manualMagazine);
   };
 
   const loadSampleData = () => {
@@ -251,55 +307,56 @@ export default function JsonIngestion() {
     return new Date(dateString).toLocaleDateString('de-DE');
   };
 
-  const startEditing = (issue: Issue) => {
-    setEditingIssue(issue.id);
+  const startEditing = (magazine: Issue) => {
+    setEditingMagazine(magazine.id);
     setEditValues({
       ...editValues,
-      [issue.id]: {
-        title: issue.title,
-        issueId: issue.issueId,
-        date: issue.date
+      [magazine.id]: {
+        title: magazine.title,
+        issueId: magazine.issueId,
+        date: magazine.date,
+        jsonData: ""
       }
     });
   };
 
   const cancelEditing = () => {
-    setEditingIssue(null);
+    setEditingMagazine(null);
     setEditValues({});
   };
 
-  const saveChanges = (issueId: string) => {
-    const changes = editValues[issueId];
+  const saveChanges = (magazineId: string) => {
+    const changes = editValues[magazineId];
     if (changes) {
-      updateIssueMutation.mutate({
-        id: issueId,
+      updateMagazineMutation.mutate({
+        id: magazineId,
         data: changes
       });
     }
   };
 
-  const updateEditValue = (issueId: string, field: string, value: string) => {
+  const updateEditValue = (magazineId: string, field: string, value: string) => {
     setEditValues({
       ...editValues,
-      [issueId]: {
-        ...editValues[issueId],
+      [magazineId]: {
+        ...editValues[magazineId],
         [field]: value
       }
     });
   };
 
-  const generateJsonTemplate = (issue: Issue) => {
+  const generateJsonTemplate = (magazine: Issue) => {
     const template = {
       issue: {
-        id: issue.issueId,
-        title: issue.title,
-        date: issue.date
+        id: magazine.issueId,
+        title: magazine.title,
+        date: magazine.date
       },
-      sections: issue.sections || ["Hauptteil", "Service", "Editorial"],
+      sections: magazine.sections || ["Hauptteil", "Service", "Editorial"],
       articles: [
         {
           id: "beispiel-artikel-1",
-          section: issue.sections?.[0] || "Hauptteil",
+          section: magazine.sections?.[0] || "Hauptteil",
           type: "feature",
           title: "Beispiel-Artikel Titel",
           dek: "Kurzer Vorspann oder Untertitel",
@@ -317,7 +374,7 @@ export default function JsonIngestion() {
         },
         {
           id: "beispiel-artikel-2", 
-          section: issue.sections?.[1] || "Service",
+          section: magazine.sections?.[1] || "Service",
           type: "article",
           title: "Zweiter Artikel",
           author: "Anderer Autor",
@@ -330,105 +387,154 @@ export default function JsonIngestion() {
     setJsonInput(JSON.stringify(template, null, 2));
     toast({
       title: "JSON-Vorlage generiert",
-      description: `Vorlage für "${issue.title}" wurde in das Eingabefeld geladen`,
+      description: `Vorlage für "${magazine.title}" wurde in das Eingabefeld geladen`,
     });
   };
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900 mb-2">Daten-Import & Issue-Verwaltung</h1>
+        <h1 className="text-2xl font-semibold text-slate-900 mb-2">Magazin-Verwaltung & JSON-Import</h1>
         <p className="text-slate-600">
-          Importiere Magazine-Inhalte aus JSON-Format oder erstelle neue Issues manuell
+          Erstelle neue Magazine und importiere Inhalte im JSON-Format
         </p>
       </div>
 
-      {/* Existing Issues Overview */}
+      {/* Existing Magazines Overview */}
       <Card>
         <CardHeader className="border-b border-slate-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <FolderOpen className="w-5 h-5 text-slate-600" />
-              <h2 className="text-lg font-semibold text-slate-900">Vorhandene Issues</h2>
+              <h2 className="text-lg font-semibold text-slate-900">Vorhandene Magazine</h2>
             </div>
-            <Dialog open={createIssueOpen} onOpenChange={setCreateIssueOpen}>
+            <Dialog open={createMagazineOpen} onOpenChange={setCreateMagazineOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline">
                   <Plus className="w-4 h-4 mr-2" />
-                  Neues Issue
+                  Neues Magazin
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Neues Issue erstellen</DialogTitle>
+                  <DialogTitle>Neues Magazin erstellen</DialogTitle>
                   <DialogDescription>
-                    Erstelle ein leeres Issue, dem du später Artikel hinzufügen kannst
+                    Erstelle ein neues Magazin mit Metadaten und optional JSON-Daten
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="issue-id">Issue ID *</Label>
-                    <Input
-                      id="issue-id"
-                      value={manualIssue.issueId}
-                      onChange={(e) => setManualIssue({...manualIssue, issueId: e.target.value})}
-                      placeholder="z.B. 2025-11"
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Metadaten */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Magazin-Metadaten</h3>
+                    <div>
+                      <Label htmlFor="magazine-id">Magazin-ID *</Label>
+                      <Input
+                        id="magazine-id"
+                        value={manualMagazine.issueId}
+                        onChange={(e) => setManualMagazine({...manualMagazine, issueId: e.target.value})}
+                        placeholder="z.B. 2025-11"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="magazine-title">Titel *</Label>
+                      <Input
+                        id="magazine-title"
+                        value={manualMagazine.title}
+                        onChange={(e) => setManualMagazine({...manualMagazine, title: e.target.value})}
+                        placeholder="z.B. Herbst-Ausgabe 2025"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="magazine-date">Datum *</Label>
+                      <Input
+                        id="magazine-date"
+                        type="date"
+                        value={manualMagazine.date}
+                        onChange={(e) => setManualMagazine({...manualMagazine, date: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="magazine-sections">Rubriken (durch Komma getrennt)</Label>
+                      <Input
+                        id="magazine-sections"
+                        value={manualMagazine.sections}
+                        onChange={(e) => setManualMagazine({...manualMagazine, sections: e.target.value})}
+                        placeholder="z.B. Politik, Wirtschaft, Sport"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* JSON-Daten */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-medium">JSON-Daten (optional)</h3>
+                      <div className="flex space-x-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setManualMagazine({...manualMagazine, jsonData: JSON.stringify({
+                            issue: {
+                              id: manualMagazine.issueId || "2025-11",
+                              title: manualMagazine.title || "Neues Magazin",
+                              date: manualMagazine.date || "2025-11-01"
+                            },
+                            sections: manualMagazine.sections ? manualMagazine.sections.split(",").map(s => s.trim()) : ["Editorial", "Hauptteil"],
+                            articles: []
+                          }, null, 2)})}
+                        >
+                          <FileText className="w-3 h-3 mr-1" />
+                          Vorlage
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={loadMultiArticleSample}
+                        >
+                          <BookOpen className="w-3 h-3 mr-1" />
+                          Beispiel
+                        </Button>
+                      </div>
+                    </div>
+                    <Textarea
+                      value={manualMagazine.jsonData}
+                      onChange={(e) => setManualMagazine({...manualMagazine, jsonData: e.target.value})}
+                      placeholder="JSON-Daten hier einfügen (optional)..."
+                      className="min-h-[300px] font-mono text-sm"
                     />
+                    <p className="text-xs text-slate-500">
+                      Falls JSON-Daten eingegeben werden, werden diese direkt verarbeitet und Artikel erstellt.
+                    </p>
                   </div>
-                  <div>
-                    <Label htmlFor="issue-title">Titel *</Label>
-                    <Input
-                      id="issue-title"
-                      value={manualIssue.title}
-                      onChange={(e) => setManualIssue({...manualIssue, title: e.target.value})}
-                      placeholder="z.B. Herbst-Ausgabe 2025"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="issue-date">Datum *</Label>
-                    <Input
-                      id="issue-date"
-                      type="date"
-                      value={manualIssue.date}
-                      onChange={(e) => setManualIssue({...manualIssue, date: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="issue-sections">Rubriken (durch Komma getrennt)</Label>
-                    <Input
-                      id="issue-sections"
-                      value={manualIssue.sections}
-                      onChange={(e) => setManualIssue({...manualIssue, sections: e.target.value})}
-                      placeholder="z.B. Politik, Wirtschaft, Sport"
-                    />
-                  </div>
-                  <div className="flex justify-end space-x-2">
-                    <Button variant="outline" onClick={() => setCreateIssueOpen(false)}>
-                      Abbrechen
-                    </Button>
-                    <Button 
-                      onClick={handleCreateIssue}
-                      disabled={createIssueMutation.isPending}
-                    >
-                      {createIssueMutation.isPending ? "Erstelle..." : "Issue erstellen"}
-                    </Button>
-                  </div>
+                </div>
+                
+                <div className="flex justify-end space-x-2 pt-4 border-t">
+                  <Button variant="outline" onClick={() => setCreateMagazineOpen(false)}>
+                    Abbrechen
+                  </Button>
+                  <Button 
+                    onClick={handleCreateMagazine}
+                    disabled={createMagazineMutation.isPending}
+                  >
+                    {createMagazineMutation.isPending ? "Erstelle..." : "Magazin erstellen"}
+                  </Button>
                 </div>
               </DialogContent>
             </Dialog>
           </div>
         </CardHeader>
         <CardContent className="p-6">
-          {loadingIssues ? (
+          {loadingMagazines ? (
             <div className="flex items-center justify-center py-8">
               <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-              <span className="ml-2 text-slate-600">Lade Issues...</span>
+              <span className="ml-2 text-slate-600">Lade Magazine...</span>
             </div>
-          ) : issues.length === 0 ? (
+          ) : magazines.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
               <BookOpen className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-              <p>Noch keine Issues vorhanden</p>
-              <p className="text-sm">Erstelle ein neues Issue oder importiere JSON-Daten</p>
+              <p>Noch keine Magazine vorhanden</p>
+              <p className="text-sm">Erstelle ein neues Magazin oder importiere JSON-Daten</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -436,96 +542,106 @@ export default function JsonIngestion() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[200px]">Titel</TableHead>
-                    <TableHead className="w-[120px]">Issue ID</TableHead>
+                    <TableHead className="w-[120px]">Magazin-ID</TableHead>
                     <TableHead className="w-[120px]">Datum</TableHead>
                     <TableHead className="w-[100px]">Status</TableHead>
                     <TableHead>Rubriken</TableHead>
-                    <TableHead className="w-[120px]">Aktionen</TableHead>
+                    <TableHead className="w-[150px]">Aktionen</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {issues.map((issue) => (
-                    <TableRow key={issue.id}>
+                  {magazines.map((magazine) => (
+                    <TableRow key={magazine.id}>
                       <TableCell>
-                        {editingIssue === issue.id ? (
+                        {editingMagazine === magazine.id ? (
                           <Input
-                            value={editValues[issue.id]?.title || issue.title}
-                            onChange={(e) => updateEditValue(issue.id, 'title', e.target.value)}
+                            value={editValues[magazine.id]?.title || magazine.title}
+                            onChange={(e) => updateEditValue(magazine.id, 'title', e.target.value)}
                             className="h-8"
                           />
                         ) : (
-                          <span className="font-medium">{issue.title}</span>
+                          <span className="font-medium">{magazine.title}</span>
                         )}
                       </TableCell>
                       <TableCell>
-                        {editingIssue === issue.id ? (
+                        {editingMagazine === magazine.id ? (
                           <Input
-                            value={editValues[issue.id]?.issueId || issue.issueId}
-                            onChange={(e) => updateEditValue(issue.id, 'issueId', e.target.value)}
+                            value={editValues[magazine.id]?.issueId || magazine.issueId}
+                            onChange={(e) => updateEditValue(magazine.id, 'issueId', e.target.value)}
                             className="h-8"
                           />
                         ) : (
-                          <span className="font-mono text-sm">{issue.issueId}</span>
+                          <span className="font-mono text-sm">{magazine.issueId}</span>
                         )}
                       </TableCell>
                       <TableCell>
-                        {editingIssue === issue.id ? (
+                        {editingMagazine === magazine.id ? (
                           <Input
                             type="date"
-                            value={editValues[issue.id]?.date || issue.date}
-                            onChange={(e) => updateEditValue(issue.id, 'date', e.target.value)}
+                            value={editValues[magazine.id]?.date || magazine.date}
+                            onChange={(e) => updateEditValue(magazine.id, 'date', e.target.value)}
                             className="h-8"
                           />
                         ) : (
-                          <span className="text-sm">{formatDate(issue.date)}</span>
+                          <span className="text-sm">{formatDate(magazine.date)}</span>
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={issue.status === "draft" ? "secondary" : "default"}>
-                          {issue.status}
+                        <Badge variant={magazine.status === "draft" ? "secondary" : "default"}>
+                          {magazine.status === "draft" ? "Entwurf" : magazine.status}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {issue.sections && issue.sections.length > 0 && (
+                        {magazine.sections && magazine.sections.length > 0 && (
                           <div className="flex flex-wrap gap-1">
-                            {issue.sections.slice(0, 2).map((section, idx) => (
+                            {magazine.sections.slice(0, 2).map((section, idx) => (
                               <Badge key={idx} variant="outline" className="text-xs">
                                 {section}
                               </Badge>
                             ))}
-                            {issue.sections.length > 2 && (
+                            {magazine.sections.length > 2 && (
                               <Badge variant="outline" className="text-xs">
-                                +{issue.sections.length - 2}
+                                +{magazine.sections.length - 2}
                               </Badge>
                             )}
                           </div>
                         )}
                       </TableCell>
                       <TableCell>
-                        {editingIssue === issue.id ? (
-                          <div className="flex space-x-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => saveChanges(issue.id)}
-                              disabled={updateIssueMutation.isPending}
-                            >
-                              <Save className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={cancelEditing}
-                            >
-                              <X className="w-3 h-3" />
-                            </Button>
+                        {editingMagazine === magazine.id ? (
+                          <div className="space-y-2">
+                            <Textarea
+                              value={editValues[magazine.id]?.jsonData || ""}
+                              onChange={(e) => updateEditValue(magazine.id, 'jsonData', e.target.value)}
+                              placeholder="JSON-Daten hier einfügen..."
+                              className="min-h-[100px] font-mono text-xs"
+                            />
+                            <div className="flex space-x-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => saveChanges(magazine.id)}
+                                disabled={updateMagazineMutation.isPending}
+                                title="Speichern"
+                              >
+                                <Save className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={cancelEditing}
+                                title="Abbrechen"
+                              >
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </div>
                           </div>
                         ) : (
                           <div className="flex space-x-1">
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => startEditing(issue)}
+                              onClick={() => startEditing(magazine)}
                               title="Bearbeiten"
                             >
                               <Edit className="w-3 h-3" />
@@ -533,11 +649,41 @@ export default function JsonIngestion() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => generateJsonTemplate(issue)}
+                              onClick={() => generateJsonTemplate(magazine)}
                               title="JSON-Vorlage generieren"
                             >
                               <FileText className="w-3 h-3" />
                             </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  title="Löschen"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Magazin löschen</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Möchten Sie das Magazin "{magazine.title}" wirklich löschen? 
+                                    Diese Aktion kann nicht rückgängig gemacht werden.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteMagazineMutation.mutate(magazine.id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Löschen
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         )}
                       </TableCell>
