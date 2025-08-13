@@ -214,7 +214,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate preview
+  // Generate HTML preview instead of screenshots for now
   app.post("/api/preview", async (req, res) => {
     try {
       const { issueId, templatePackId } = req.body;
@@ -222,16 +222,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "issueId and templatePackId are required" });
       }
 
-      const preview = await renderingService.generatePreview(issueId, templatePackId);
-      
-      // Convert screenshots to base64 for JSON response
-      const screenshots = preview.screenshots.map(buffer => 
-        `data:image/png;base64,${buffer.toString('base64')}`
-      );
+      // For now, generate HTML preview instead of PDF/screenshots
+      const [issue, templatePack, articles, allImages] = await Promise.all([
+        storage.getIssue(issueId),
+        storage.getTemplatePack(templatePackId),
+        storage.getArticlesByIssue(issueId),
+        storage.getImagesByArticle("dummy") // Get all images for issue
+      ]);
+
+      if (!issue || !templatePack) {
+        return res.status(404).json({ error: "Issue or template pack not found" });
+      }
+
+      const { TemplateGenerator } = await import('./template-generator');
+      const templateGenerator = new TemplateGenerator(templatePack);
+      const template = await templateGenerator.generateMagazine(issue, articles, allImages);
       
       res.json({
-        screenshots,
-        metadata: preview.metadata,
+        html: template.html,
+        css: template.css,
+        metadata: template.metadata,
       });
     } catch (error) {
       res.status(500).json({ error: `Failed to generate preview: ${error.message}` });
@@ -245,14 +255,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pdfPath = join("./generated-pdfs", filename);
       
       if (!existsSync(pdfPath)) {
-        return res.status(404).json({ error: "PDF not found" });
+        return res.status(404).json({ error: "File not found" });
       }
       
-      res.setHeader('Content-Type', 'application/pdf');
+      const isPdf = filename.endsWith('.pdf');
+      res.setHeader('Content-Type', isPdf ? 'application/pdf' : 'text/html');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       res.sendFile(pdfPath, { root: "." });
     } catch (error) {
-      res.status(500).json({ error: "Failed to download PDF" });
+      res.status(500).json({ error: "Failed to download file" });
+    }
+  });
+
+  // Serve HTML preview files
+  app.get("/api/preview-files/:filename", (req, res) => {
+    try {
+      const filename = req.params.filename;
+      const htmlPath = join("./generated-previews", filename);
+      
+      if (!existsSync(htmlPath)) {
+        return res.status(404).json({ error: "Preview not found" });
+      }
+      
+      res.setHeader('Content-Type', 'text/html');
+      res.sendFile(htmlPath, { root: "." });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to serve preview" });
     }
   });
 

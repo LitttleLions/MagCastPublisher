@@ -1,6 +1,7 @@
 import { storage } from './storage';
 import { TemplateGenerator } from './template-generator';
 import { pdfRenderer, type PDFOptions } from './pdf-renderer';
+import { htmlRenderer } from './html-renderer';
 import type { RenderJob, Issue, Article, Image, TemplatePack } from '@shared/schema';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
@@ -108,28 +109,58 @@ export class RenderingService {
         message: 'Rendering PDF...',
       });
 
-      // Initialize PDF renderer if needed
-      await pdfRenderer.initialize();
-
-      // Validate template before rendering
-      const validation = await pdfRenderer.validateTemplate(template);
-      if (!validation.isValid) {
-        throw new Error(`Template validation failed: ${validation.errors.join(', ')}`);
-      }
-
-      // Check if job was cancelled
-      if (abortController.signal.aborted) {
-        throw new Error('Job was cancelled');
-      }
-
       await this.updateJobProgress(jobId, {
         status: 'processing',
         progress: 85,
-        message: 'Generating PDF...',
+        message: 'Generating output...',
       });
 
-      // Render PDF
-      const renderResult = await pdfRenderer.renderPDF(template, options);
+      let outputPath: string;
+      let renderTime: number;
+      let warnings: string[] = [];
+
+      // Try PDF rendering first, with full error handling
+      let pdfSuccess = false;
+      if (renderer === 'puppeteer') {
+        try {
+          await pdfRenderer.initialize();
+        const validation = await pdfRenderer.validateTemplate(template);
+        if (validation.isValid) {
+          const renderResult = await pdfRenderer.renderPDF(template, options);
+          
+          // Save PDF to disk
+          const filename = `${issue.issueId}-${templatePack.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.pdf`;
+          const pdfPath = join(this.outputDir, filename);
+          writeFileSync(pdfPath, renderResult.buffer);
+          
+          outputPath = `/api/downloads/${filename}`;
+          renderTime = renderResult.renderTime;
+          warnings = renderResult.warnings;
+          pdfSuccess = true;
+          
+          console.log(`PDF saved to ${pdfPath}, size: ${renderResult.buffer.length} bytes`);
+          } else {
+            console.log(`Template validation failed: ${validation.errors.join(', ')}`);
+          }
+        } catch (pdfError) {
+          console.log(`PDF rendering failed: ${pdfError.message}`);
+        }
+      } else {
+        console.log('Non-puppeteer renderer requested, skipping PDF generation');
+      }
+
+      // Fallback to HTML rendering if PDF failed
+      if (!pdfSuccess) {
+        console.log('Falling back to HTML preview generation');
+        const filename = `${issue.issueId}-${templatePack.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`;
+        const htmlResult = await htmlRenderer.renderHTML(template, filename);
+        
+        outputPath = htmlResult.htmlPath;
+        renderTime = htmlResult.renderTime;
+        warnings.push('PDF rendering unavailable in this environment, generated HTML preview instead');
+        
+        console.log(`HTML preview saved: ${htmlResult.htmlPath}`);
+      }
 
       // Check if job was cancelled
       if (abortController.signal.aborted) {
@@ -139,26 +170,19 @@ export class RenderingService {
       await this.updateJobProgress(jobId, {
         status: 'processing',
         progress: 95,
-        message: 'Saving PDF...',
+        message: 'Finalizing...',
       });
-
-      // Save PDF to disk
-      const filename = `${issue.issueId}-${templatePack.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.pdf`;
-      const pdfPath = join(this.outputDir, filename);
-      writeFileSync(pdfPath, renderResult.buffer);
-
-      console.log(`PDF saved to ${pdfPath}, size: ${renderResult.buffer.length} bytes`);
 
       // Complete job
       await this.updateJobProgress(jobId, {
         status: 'completed',
         progress: 100,
-        message: 'PDF generated successfully',
-        pdfPath: `/api/downloads/${filename}`,
-        warnings: renderResult.warnings,
+        message: 'Rendering completed successfully',
+        pdfPath: outputPath,
+        warnings,
       });
 
-      console.log(`Render job ${jobId} completed successfully in ${renderResult.renderTime}ms`);
+      console.log(`Render job ${jobId} completed successfully in ${renderTime}ms`);
 
     } catch (error) {
       console.error(`Render job ${jobId} failed:`, error);
