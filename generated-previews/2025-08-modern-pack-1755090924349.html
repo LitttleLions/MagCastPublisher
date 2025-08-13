@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MagCast Preview</title>
+    <style>
+        
+      /* CSS Reset and Base Styles */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      /* Paged Media Rules for Print/PDF */
+      @page {
+        size: A4;
+        margin: 15mm 15mm 20mm 15mm;
+        marks: crop cross;
+        bleed: 3mm;
+        
+        @top-center {
+          content: "Modern Pack";
+          font-size: 8pt;
+          color: #666;
+        }
+        
+        @bottom-center {
+          content: counter(page);
+          font-size: 10pt;
+        }
+        
+        @bottom-left {
+          content: "8/13/2025";
+          font-size: 8pt;
+          color: #666;
+        }
+      }
+
+      @page :first {
+        @top-center { content: none; }
+        @bottom-center { content: none; }
+        @bottom-left { content: none; }
+      }
+
+      /* Typography Base */
+      body {
+        font-family: 'Times New Roman', serif;
+        color: #1a1a1a;
+        background: white;
+        counter-reset: page;
+      }
+
+      .magazine {
+        max-width: 210mm;
+        margin: 0 auto;
+        background: white;
+      }
+
+      /* Cover Page */
+      .cover-page {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        page-break-after: always;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40mm;
+      }
+
+      .cover-title {
+        font-size: 48pt;
+        font-weight: bold;
+        margin-bottom: 24pt;
+        line-height: 1.1;
+      }
+
+      .cover-issue {
+        font-size: 24pt;
+        margin-bottom: 12pt;
+        opacity: 0.9;
+      }
+
+      .cover-date {
+        font-size: 16pt;
+        opacity: 0.8;
+      }
+
+      /* Table of Contents */
+      .toc-page {
+        page-break-before: always;
+        page-break-after: always;
+        padding: 40pt 0;
+      }
+
+      .toc-title {
+        font-size: 28pt;
+        font-weight: bold;
+        margin-bottom: 24pt;
+        text-align: center;
+        border-bottom: 2px solid #1a1a1a;
+        padding-bottom: 12pt;
+      }
+
+      .toc-section {
+        margin-bottom: 24pt;
+      }
+
+      .toc-section-title {
+        font-size: 16pt;
+        font-weight: bold;
+        margin-bottom: 12pt;
+        color: #667eea;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .toc-entry {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 8pt;
+        padding-bottom: 4pt;
+        border-bottom: 1px dotted #ccc;
+      }
+
+      .toc-article-title {
+        font-size: 12pt;
+        flex-grow: 1;
+      }
+
+      .toc-author {
+        font-size: 10pt;
+        color: #666;
+        margin: 0 12pt;
+      }
+
+      .toc-page-number {
+        font-size: 12pt;
+        font-weight: bold;
+        color: #667eea;
+      }
+
+      /* Article Styles */
+      .magazine-article {
+        page-break-before: auto;
+        page-break-after: auto;
+        padding: 24pt 0;
+        border-bottom: 1px solid #e0e0e0;
+        margin-bottom: 24pt;
+      }
+
+      .magazine-article:last-child {
+        border-bottom: none;
+      }
+
+      /* Image Styles */
+      .article-image {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        break-inside: avoid;
+      }
+
+      .hero-image-container {
+        margin-bottom: 24pt;
+        column-span: all;
+        break-after: avoid;
+      }
+
+      .inline-image-container {
+        margin: 12pt 0;
+        break-inside: avoid;
+      }
+
+      .image-caption {
+        font-size: 9pt;
+        line-height: 1.3;
+        margin-top: 6pt;
+        font-style: italic;
+        color: #666;
+      }
+
+      .image-credit {
+        font-size: 8pt;
+        color: #999;
+        margin-top: 3pt;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      /* Imprint */
+      .imprint-page {
+        page-break-before: always;
+        padding: 40pt 0;
+        font-size: 9pt;
+        line-height: 1.4;
+        color: #666;
+      }
+
+      .imprint-title {
+        font-size: 14pt;
+        font-weight: bold;
+        margin-bottom: 18pt;
+        color: #1a1a1a;
+      }
+
+      .imprint-section {
+        margin-bottom: 12pt;
+      }
+
+      /* Utility Classes */
+      .page-break {
+        page-break-before: always;
+      }
+
+      .avoid-break {
+        break-inside: avoid;
+      }
+
+      .text-center {
+        text-align: center;
+      }
+
+      .text-uppercase {
+        text-transform: uppercase;
+      }
+
+      /* Print Optimizations */
+      @media print {
+        body {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        
+        .magazine-article {
+          orphans: 2;
+          widows: 2;
+        }
+      }
+
+      /* Responsive Adjustments for Screen Preview */
+      @media screen and (max-width: 768px) {
+        .magazine {
+          padding: 20pt;
+        }
+        
+        .cover-page {
+          height: auto;
+          min-height: 100vh;
+        }
+        
+        .article-content {
+          column-count: 1 !important;
+        }
+      }
+    
+        
+        /* Additional preview styles */
+        .preview-header {
+            background: #f5f5f5;
+            padding: 20px;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 40px;
+            text-align: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        .preview-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .layout-decisions {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 40px auto;
+            max-width: 800px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        .decision-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-left: 4px solid #667eea;
+            background: #f8f9ff;
+        }
+        
+        .warning {
+            color: #e67e22;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        /* Print-specific styles for better preview */
+        @media print {
+            .preview-header,
+            .layout-decisions {
+                display: none;
+            }
+        }
+        
+        /* Responsive adjustments */
+        @media screen and (max-width: 768px) {
+            .magazine {
+                padding: 10px;
+            }
+            
+            .preview-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-header">
+        <div class="preview-info">
+            <div>
+                <h3>MagCast Layout Preview</h3>
+                <p>Generiert am 13.8.2025, 13:15:24</p>
+            </div>
+            <div>
+                <strong>Geschätzte Seiten:</strong> 4<br>
+                <strong>Layout-Entscheidungen:</strong> 1
+            </div>
+        </div>
+    </div>
+    
+    <div class="layout-decisions">
+        <h4>Layout-Algorithmus Entscheidungen</h4>
+        
+            <div class="decision-item">
+                <strong>Artikel 1:</strong>
+                Variante: modern-clean, 
+                Score: 115, 
+                Font: 10pt,
+                Spalten: 2
+                
+            </div>
+        
+        
+    </div>
+    
+    
+      
+      
+      
+      
+        <div class="magazine">
+          <!-- Cover Page -->
+          
+      <div class="cover-page">
+        <h1 class="cover-title">Ostsee Observer Magazin</h1>
+        <div class="cover-issue">Ausgabe 2025-08</div>
+        <div class="cover-date">13. August 2025</div>
+      </div>
+    
+          
+          <!-- Table of Contents -->
+          
+      <div class="toc-page">
+        <h2 class="toc-title">Inhalt</h2>
+    
+        <div class="toc-section">
+          <h3 class="toc-section-title">Titel</h3>
+      
+          <div class="toc-entry">
+            <span class="toc-article-title">Koalitionsgericht – Wie Parteien auf dem Grundgesetz kegeln</span>
+            <span class="toc-author">Ostsee Observer</span>
+            <span class="toc-page-number">3</span>
+          </div>
+        </div></div>
+          
+          <!-- Articles -->
+          
+        <article class="magazine-article" style="page-break-before: auto;">
+          <style scoped>
+            
+      .article-content {
+        font-size: 10pt;
+        line-height: 1.45;
+        column-count: 2;
+        column-gap: 24px;
+        column-fill: balance;
+        orphans: 2;
+        widows: 2;
+        hyphens: auto;
+      }
+
+      .article-title {
+        font-size: 28pt;
+        line-height: 1.2;
+        margin-bottom: 12pt;
+        column-span: all;
+        break-after: avoid;
+      }
+
+      .article-dek {
+        font-size: 12pt;
+        line-height: 1.4;
+        margin-bottom: 18pt;
+        column-span: all;
+        font-weight: 500;
+        break-after: avoid;
+      }
+
+      .article-author {
+        font-size: 9pt;
+        margin-bottom: 24pt;
+        column-span: all;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        break-after: avoid;
+      }
+
+      .article-body p {
+        margin-bottom: 8pt;
+        break-inside: avoid-column;
+      }
+
+      .article-body p:first-child::first-letter {
+        font-size: 35pt;
+        line-height: 1;
+        float: left;
+        margin: 0 8pt 0 0;
+        font-weight: bold;
+      }
+    
+        .hero-image {
+          width: 100%;
+          height: 50vh;
+          object-fit: cover;
+          margin-bottom: 24pt;
+          column-span: all;
+          break-after: avoid;
+        }
+      
+        .pullquote {
+          font-size: 14pt;
+          line-height: 1.3;
+          font-weight: bold;
+          margin: 18pt 0;
+          padding: 12pt 0;
+          border-top: 2px solid #333;
+          border-bottom: 2px solid #333;
+          column-span: all;
+          break-inside: avoid;
+        }
+      
+      .inline-image {
+        width: 100%;
+        margin: 12pt 0;
+        break-inside: avoid;
+      }
+
+      .image-caption {
+        font-size: 9pt;
+        line-height: 1.3;
+        margin-top: 6pt;
+        font-style: italic;
+        color: #666;
+      }
+
+      .image-credit {
+        font-size: 8pt;
+        color: #999;
+        margin-top: 3pt;
+      }
+    
+          </style>
+          
+        <div class="hero-image-container">
+          <img src="https://sdmntprukwest.oaiusercontent.com/files/00000000-48b4-6243-8214-8b768cf4fd5f/raw?se=2025-08-13T14%3A09%3A11Z&amp;sp=r&amp;sv=2024-08-04&amp;sr=b&amp;scid=22f20947-68b2-539a-9031-996470f2fdce&amp;skoid=0a4a0f0c-99ac-4752-9d87-cfac036fa93f&amp;sktid=a48cca56-e6da-484e-a814-9c849652bcb3&amp;skt=2025-08-13T06%3A22%3A09Z&amp;ske=2025-08-14T06%3A22%3A09Z&amp;sks=b&amp;skv=2024-08-04&amp;sig=0EeLDnQgmjEWDMhXNmIvt2B5dtHA2WkFEPdrKOhm4UU%3D" 
+               alt="Richterwahl als Bühne der Macht: Das Verfassungsgericht als Koalitionsobjekt"
+               class="article-image hero-image"
+               style="object-position: 0.5,0.4;">
+          <div class="image-caption">Richterwahl als Bühne der Macht: Das Verfassungsgericht als Koalitionsobjekt</div>
+          <div class="image-credit">KI-generiert</div>
+        </div>
+      
+      <header class="article-header">
+        <h1 class="article-title">Koalitionsgericht – Wie Parteien auf dem Grundgesetz kegeln</h1>
+        <div class="article-dek">Wenn Richterposten nach Parteischlüssel vergeben werden, bleibt die Verfassung auf der Strecke. Ein satirisch-ernster Blick auf die Berliner Hinterzimmerjustiz.</div>
+        <div class="article-author">Von Ostsee Observer</div>
+      </header>
+    
+      <div class="article-content">
+        <div class="article-body">
+          <p>Die Ostsee glitzert, mein Bier ist kalt – und in Berlin kegelt die Koalition mit dem Bundesverfassungsgericht. Jeder will seine Richter, niemand will Debatte. Parteiquoten statt Qualifikation.</p><h2>Einleitung: Wenn Verfassung Richter braucht – und Parteien Richter wollen</h2><p>Stell dir vor, du baust dir ein Haus – solide, mit Fundamenten, die jedes Unwetter aushalten. Und dann lässt du beim Dachdecker den Schwager ran. So läuft’s bei der Richterwahl.</p><p>Aktuell im Rampenlicht: Frauke Brosius-Gersdorf. SPD-Kandidatin, Professorin, politisch umstritten. Und das eigentliche Drama: Nicht, <em>dass</em> man streitet, sondern <em>wie</em>.</p><h2>Koalitionskegel mit Verfassungskern</h2><p>Drei für CDU/CSU, drei für SPD – so wurde’s einst ausgeklüngelt. Grünen-Freifahrt inklusive. FDP? Ein Relikt mit Vorschlagsrecht. Die AfD? Stärkste Oppositionskraft, aber weiter am Katzentisch. Demokratie à la Carte.</p><h2>Söders Vorschlag: Weg mit der Zweidrittelmehrheit</h2><p>Markus Söder will das Zweidrittelerfordernis kippen. Zu kompliziert, zu sperrig. Doch diese Hürde sorgte bislang für Balance – und für Richter, die <em>nicht</em> wie Parteisoldaten wirken.</p><h2>Die Quote ist tot – aber keiner sagt’s ihr</h2><p>Die SPD pocht auf ihre historischen Anrechte, obwohl sie politisch auf Schrumpfkurs ist. Die Realität heißt: AfD zweitstärkste Kraft, aber systematisch außen vor. Wer Demokratie sagt, muss auch Debatte aushalten.
+          <blockquote class="pullquote">
+            Die Ostsee glitzert, mein Bier ist kalt – und in Berlin kegelt die Koalition mit dem Bundesverfassungsgericht
+          </blockquote>
+        </p><h2>Reform? Ja. Aber richtig.</h2><p>Option A: Verteilung nach aktueller Stärke – CDU/CSU 3, SPD 2, AfD 2, Grüne/Linke je 1. Option B: Jeder darf vorschlagen, gewählt wird mit Zweidrittelmehrheit. Transparenz statt Hinterzimmer.</p><h2>Schluss: Das Recht darf kein Parteisoldat sein</h2><p>Während an der Küste der Wind die Möwen sortiert, sortieren sich in Berlin die Koalitionäre wie Krabben im Korb. Der Rechtsstaat verdient besseres Personal – nicht nur Parteinähe im Talar.</p><blockquote>„Decisions are made by those who show up.“ – Präsident Bartlet</blockquote><p>Vielleicht sollten sich das mal ein paar Fraktionsführer tätowieren lassen. Am besten auf die Stirn. Rückwärts.</p>
+        </div>
+      </div>
+    
+        </article>
+      
+          
+          <!-- Imprint -->
+          
+      <div class="imprint-page">
+        <h2 class="imprint-title">Impressum</h2>
+        
+        <div class="imprint-section">
+          <strong>Herausgeber:</strong><br>
+          MagCast Publishing GmbH<br>
+          Musterstraße 123<br>
+          12345 Musterstadt
+        </div>
+        
+        <div class="imprint-section">
+          <strong>Redaktion:</strong><br>
+          Chefredaktion: Max Mustermann<br>
+          E-Mail: redaktion@magcast.de
+        </div>
+        
+        <div class="imprint-section">
+          <strong>Ausgabe:</strong><br>
+          Ostsee Observer Magazin - 2025-08<br>
+          Erscheinungsdatum: 13.8.2025
+        </div>
+        
+        <div class="imprint-section">
+          <strong>Technische Umsetzung:</strong><br>
+          Automatisiert erstellt mit MagCast Publishing Engine<br>
+          Template: Modern Pack vv2.1.0
+        </div>
+        
+        <div class="imprint-section">
+          <strong>Copyright:</strong><br>
+          Alle Rechte vorbehalten. Nachdruck, auch auszugsweise, nur mit ausdrücklicher Genehmigung des Verlags.
+        </div>
+      </div>
+    
+        </div>
+      
+      
+    
+</body>
+</html>
