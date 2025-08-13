@@ -71,13 +71,24 @@ export class MemStorage implements IStorage {
 
   private initializeDatabaseSchema() {
     db.serialize(() => {
+      // Drop existing tables to ensure clean schema
+      db.run(`DROP TABLE IF EXISTS images`);
+      db.run(`DROP TABLE IF EXISTS articles`);
+      db.run(`DROP TABLE IF EXISTS render_jobs`);
+      db.run(`DROP TABLE IF EXISTS template_pack_variants`);
+      db.run(`DROP TABLE IF EXISTS template_pack_rules`);
+      db.run(`DROP TABLE IF EXISTS template_packs`);
+      db.run(`DROP TABLE IF EXISTS assets`);
+      db.run(`DROP TABLE IF EXISTS issues`);
+
       // Create issues table
       db.run(`
-        CREATE TABLE IF NOT EXISTS issues (
+        CREATE TABLE issues (
           id TEXT PRIMARY KEY,
           title TEXT NOT NULL,
           issueId TEXT UNIQUE NOT NULL,
           date TEXT NOT NULL,
+          sections TEXT NOT NULL DEFAULT '[]',
           status TEXT NOT NULL DEFAULT 'draft',
           createdAt TEXT NOT NULL,
           updatedAt TEXT NOT NULL
@@ -86,7 +97,7 @@ export class MemStorage implements IStorage {
 
       // Create articles table
       db.run(`
-        CREATE TABLE IF NOT EXISTS articles (
+        CREATE TABLE articles (
           id TEXT PRIMARY KEY,
           issueId TEXT NOT NULL,
           articleId TEXT UNIQUE NOT NULL,
@@ -103,7 +114,7 @@ export class MemStorage implements IStorage {
 
       // Create images table
       db.run(`
-        CREATE TABLE IF NOT EXISTS images (
+        CREATE TABLE images (
           id TEXT PRIMARY KEY,
           articleId TEXT NOT NULL,
           src TEXT NOT NULL,
@@ -121,7 +132,7 @@ export class MemStorage implements IStorage {
 
       // Create template_packs table
       db.run(`
-        CREATE TABLE IF NOT EXISTS template_packs (
+        CREATE TABLE template_packs (
           id TEXT PRIMARY KEY,
           name TEXT NOT NULL,
           description TEXT,
@@ -133,7 +144,7 @@ export class MemStorage implements IStorage {
 
       // Create template_pack_variants table
       db.run(`
-        CREATE TABLE IF NOT EXISTS template_pack_variants (
+        CREATE TABLE template_pack_variants (
           id TEXT PRIMARY KEY,
           templatePackId TEXT NOT NULL,
           variantId TEXT NOT NULL,
@@ -147,7 +158,7 @@ export class MemStorage implements IStorage {
 
       // Create template_pack_rules table
       db.run(`
-        CREATE TABLE IF NOT EXISTS template_pack_rules (
+        CREATE TABLE template_pack_rules (
           templatePackId TEXT PRIMARY KEY,
           typography TEXT,
           layout TEXT,
@@ -158,20 +169,19 @@ export class MemStorage implements IStorage {
 
       // Create render_jobs table
       db.run(`
-        CREATE TABLE IF NOT EXISTS render_jobs (
+        CREATE TABLE render_jobs (
           id TEXT PRIMARY KEY,
           issueId TEXT NOT NULL,
           templatePackId TEXT NOT NULL,
           renderer TEXT NOT NULL,
           status TEXT NOT NULL DEFAULT 'queued',
           progress INTEGER DEFAULT 0,
+          pdfUrl TEXT,
+          errorMessage TEXT,
+          metadata TEXT,
           createdAt TEXT NOT NULL,
           startedAt TEXT,
           completedAt TEXT,
-          pdfPath TEXT,
-          htmlPreviewPath TEXT,
-          errorMessage TEXT,
-          metadata TEXT,
           FOREIGN KEY (issueId) REFERENCES issues (id),
           FOREIGN KEY (templatePackId) REFERENCES template_packs (id)
         )
@@ -179,10 +189,10 @@ export class MemStorage implements IStorage {
 
       // Create assets table
       db.run(`
-        CREATE TABLE IF NOT EXISTS assets (
+        CREATE TABLE assets (
           id TEXT PRIMARY KEY,
           filename TEXT NOT NULL,
-          path TEXT NOT NULL,
+          path TEXT,
           originalUrl TEXT NOT NULL,
           processedUrl TEXT,
           size INTEGER NOT NULL,
