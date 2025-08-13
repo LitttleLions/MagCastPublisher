@@ -173,7 +173,7 @@ export class MemStorage implements IStorage {
           errorMessage TEXT,
           metadata TEXT,
           FOREIGN KEY (issueId) REFERENCES issues (id),
-          FOREIGNKEY (templatePackId) REFERENCES template_packs (id)
+          FOREIGN KEY (templatePackId) REFERENCES template_packs (id)
         )
       `);
 
