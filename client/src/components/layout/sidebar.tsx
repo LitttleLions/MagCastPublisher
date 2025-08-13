@@ -39,24 +39,20 @@ export default function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 p-4">
         <div className="space-y-2">
-          {navigation.map((item) => {
-            const Icon = item.icon;
-            const isActive = location === item.href;
-
-            return (
-              <Link href={item.href} className={cn(
-                "w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium",
-                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                "transition-colors",
-                isActive 
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground" 
-                  : "text-sidebar-foreground/70"
-              )}>
-                <Icon className="w-5 h-5" />
-                <span>{item.name}</span>
-              </Link>
-            );
-          })}
+          {navigation.map((item, index) => (
+          <Link
+            key={index}
+            href={item.href}
+            className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+              location === item.href
+                ? "bg-slate-100 text-slate-900"
+                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+            }`}
+          >
+            <item.icon className="mr-3 h-5 w-5" />
+            {item.name}
+          </Link>
+        ))}
         </div>
 
         {/* Recent Issues */}

@@ -1,6 +1,5 @@
-import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import React from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
@@ -12,7 +11,7 @@ import Assets from "@/pages/assets";
 import Publications from "@/pages/publications";
 import LayoutEngine from "@/pages/layout-engine";
 import MainLayout from "@/components/layout/main-layout";
-import React from "react";
+import { Switch, Route } from "wouter";
 
 function Router() {
   return (
@@ -32,6 +31,13 @@ function Router() {
 }
 
 function App() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        refetchOnWindowFocus: false,
+      },
+    },
+  });
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

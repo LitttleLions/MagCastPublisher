@@ -367,7 +367,7 @@ export default function JsonIngestion() {
           section: (() => {
             try {
               const sections = typeof magazine.sections === 'string' 
-                ? JSON.JSON.parse(magazine.sections) 
+                ? JSON.parse(magazine.sections) 
                 : magazine.sections;
               return sections?.[0] || "Hauptteil";
             } catch (e) {
@@ -619,36 +619,30 @@ export default function JsonIngestion() {
                       </TableCell>
                       <TableCell>
                         {(() => {
-                          let sections: string[] = [];
                           try {
-                            if (magazine.sections) {
-                              sections = typeof magazine.sections === 'string' 
-                                ? JSON.parse(magazine.sections) 
-                                : Array.isArray(magazine.sections) 
-                                  ? magazine.sections 
-                                  : [];
-                            }
+                            const sections = typeof magazine.sections === 'string' 
+                              ? JSON.parse(magazine.sections) 
+                              : magazine.sections;
+                            return Array.isArray(sections) && sections.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {sections.slice(0, 2).map((section: string, idx: number) => (
+                                  <Badge key={idx} variant="outline" className="text-xs">
+                                    {section}
+                                  </Badge>
+                                ))}
+                                {sections.length > 2 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    +{sections.length - 2}
+                                  </Badge>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-slate-500">Keine Sections</span>
+                            );
                           } catch (e) {
                             console.warn('Failed to parse sections for magazine:', magazine.id, e);
-                            sections = [];
+                            return <span className="text-xs text-slate-500">Keine Sections</span>;
                           }
-
-                          return sections.length > 0 ? (
-                            <div className="flex flex-wrap gap-1">
-                              {sections.slice(0, 2).map((section: string, idx: number) => (
-                                <Badge key={idx} variant="outline" className="text-xs">
-                                  {section}
-                                </Badge>
-                              ))}
-                              {sections.length > 2 && (
-                                <Badge variant="outline" className="text-xs">
-                                  +{sections.length - 2}
-                                </Badge>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground text-xs">No sections</span>
-                          );
                         })()}
                       </TableCell>
                       <TableCell>
