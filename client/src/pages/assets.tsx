@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { type Asset } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Image, Trash2, Download, Eye, AlertCircle, CheckCircle, Clock } from "lucide-react";
+import { Upload, Image, Trash2, Download, Eye, AlertCircle, CheckCircle, Clock, Copy } from "lucide-react";
 import { useState } from "react";
 import {
   Dialog,
@@ -101,11 +101,11 @@ export default function Assets() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "ready":
-        return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Ready</Badge>;
+        return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Bereit</Badge>;
       case "processing":
-        return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">Processing</Badge>;
+        return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">Verarbeitung</Badge>;
       case "failed":
-        return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Failed</Badge>;
+        return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Fehler</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -146,9 +146,9 @@ export default function Assets() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 mb-2">Asset Management</h1>
+          <h1 className="text-2xl font-semibold text-slate-900 mb-2">Asset-Verwaltung</h1>
           <p className="text-slate-600">
-            Upload, organize, and manage image assets for your magazine publications
+            Bilder hochladen, organisieren und für Ihre Magazin-Publikationen verwalten
           </p>
         </div>
         <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
@@ -163,14 +163,14 @@ export default function Assets() {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Upload New Asset</DialogTitle>
+              <DialogTitle>Neues Asset hochladen</DialogTitle>
               <DialogDescription>
-                Upload images that can be used in your magazine articles.
+                Laden Sie Bilder hoch, die in Ihren Magazin-Artikeln verwendet werden können.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleFileUpload} className="space-y-4">
               <div>
-                <Label htmlFor="file">Choose File</Label>
+                <Label htmlFor="file">Datei auswählen</Label>
                 <Input
                   id="file"
                   name="file"
@@ -182,14 +182,14 @@ export default function Assets() {
               </div>
               <div className="flex justify-end space-x-2">
                 <Button type="button" variant="outline" onClick={() => setUploadDialogOpen(false)}>
-                  Cancel
+                  Abbrechen
                 </Button>
                 <Button 
                   type="submit" 
                   disabled={uploadAssetMutation.isPending}
                   data-testid="button-upload"
                 >
-                  {uploadAssetMutation.isPending ? "Uploading..." : "Upload"}
+                  {uploadAssetMutation.isPending ? "Hochladen..." : "Hochladen"}
                 </Button>
               </div>
             </form>
@@ -203,7 +203,7 @@ export default function Assets() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Total Assets</p>
+                <p className="text-sm font-medium text-slate-600">Gesamt Assets</p>
                 <p className="text-2xl font-semibold text-slate-900 mt-1" data-testid="stat-total-assets">
                   {assets.length}
                 </p>
@@ -218,7 +218,7 @@ export default function Assets() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Ready</p>
+                <p className="text-sm font-medium text-slate-600">Bereit</p>
                 <p className="text-2xl font-semibold text-slate-900 mt-1" data-testid="stat-ready-assets">
                   {assets.filter(a => a.status === "ready").length}
                 </p>
@@ -233,7 +233,7 @@ export default function Assets() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Processing</p>
+                <p className="text-sm font-medium text-slate-600">Verarbeitung</p>
                 <p className="text-2xl font-semibold text-slate-900 mt-1" data-testid="stat-processing-assets">
                   {assets.filter(a => a.status === "processing").length}
                 </p>
@@ -248,7 +248,7 @@ export default function Assets() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Total Size</p>
+                <p className="text-sm font-medium text-slate-600">Gesamtgröße</p>
                 <p className="text-2xl font-semibold text-slate-900 mt-1" data-testid="stat-total-size">
                   {formatFileSize(assets.reduce((sum, asset) => sum + asset.size, 0))}
                 </p>
@@ -266,9 +266,9 @@ export default function Assets() {
         <Card>
           <CardContent className="text-center py-12">
             <Image className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-900 mb-2">No Assets Found</h3>
+            <h3 className="text-lg font-medium text-slate-900 mb-2">Keine Assets gefunden</h3>
             <p className="text-slate-600 mb-4">
-              Upload your first image asset to get started with magazine publishing.
+              Laden Sie Ihr erstes Bild-Asset hoch, um mit der Magazin-Erstellung zu beginnen.
             </p>
             <Button 
               onClick={() => setUploadDialogOpen(true)}
@@ -345,6 +345,26 @@ export default function Assets() {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(window.location.origin + asset.originalUrl);
+                            toast({
+                              title: "URL kopiert",
+                              description: "Die Asset-URL wurde in die Zwischenablage kopiert",
+                            });
+                          }}
+                          data-testid={`copy-url-${asset.id}`}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = asset.originalUrl;
+                            link.download = asset.filename;
+                            link.click();
+                          }}
                           data-testid={`download-${asset.id}`}
                         >
                           <Download className="w-4 h-4" />

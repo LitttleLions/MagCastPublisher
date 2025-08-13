@@ -179,6 +179,152 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Asset upload with multer
+  const multer = require('multer');
+  const path = require('path');
+  const fs = require('fs').promises;
+  const crypto = require('crypto');
+
+  // Ensure upload directory exists
+  const uploadDir = './uploads/assets';
+  
+  const upload = multer({
+    storage: multer.diskStorage({
+      destination: async (req, file, cb) => {
+        try {
+          await fs.mkdir(uploadDir, { recursive: true });
+          cb(null, uploadDir);
+        } catch (error) {
+          cb(error);
+        }
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+      }
+    }),
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = /jpeg|jpg|png|gif|svg|webp/;
+      const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+      const mimetype = allowedTypes.test(file.mimetype);
+      
+      if (mimetype && extname) {
+        return cb(null, true);
+      } else {
+        cb(new Error('Nur Bilddateien sind erlaubt (JPEG, PNG, GIF, SVG, WebP)'));
+      }
+    }
+  });
+
+  app.post("/api/assets/upload", upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "Keine Datei hochgeladen" });
+      }
+
+      // Get image dimensions and metadata
+      const sharp = require('sharp');
+      let metadata = {};
+      try {
+        const imageInfo = await sharp(req.file.path).metadata();
+        metadata = {
+          width: imageInfo.width,
+          height: imageInfo.height,
+          dpi: imageInfo.density || 72
+        };
+      } catch (error) {
+        console.warn('Could not extract image metadata:', error);
+      }
+
+      const asset = {
+        id: crypto.randomUUID(),
+        filename: req.file.originalname,
+        path: req.file.path,
+        originalUrl: `/api/assets/serve/${req.file.filename}`,
+        processedUrl: `/api/assets/serve/${req.file.filename}`,
+        size: req.file.size,
+        mimeType: req.file.mimetype,
+        status: "ready",
+        createdAt: new Date().toISOString(),
+        ...metadata
+      };
+
+      const savedAsset = await storage.createAsset(asset);
+      res.status(201).json(savedAsset);
+    } catch (error) {
+      console.error('Asset upload error:', error);
+      res.status(500).json({ error: error.message || "Upload fehlgeschlagen" });
+    }
+  });
+
+  // Serve asset files
+  app.get("/api/assets/serve/:filename", (req, res) => {
+    try {
+      const filename = req.params.filename;
+      const assetPath = path.join(uploadDir, filename);
+      
+      // Security check - ensure file is within upload directory
+      const normalizedPath = path.normalize(assetPath);
+      const normalizedUploadDir = path.normalize(uploadDir);
+      
+      if (!normalizedPath.startsWith(normalizedUploadDir)) {
+        return res.status(403).json({ error: "Zugriff verweigert" });
+      }
+
+      res.sendFile(path.resolve(assetPath), (err) => {
+        if (err) {
+          res.status(404).json({ error: "Datei nicht gefunden" });
+        }
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Fehler beim Laden der Datei" });
+    }
+  });
+
+  // Update asset metadata
+  app.patch("/api/assets/:id", async (req, res) => {
+    try {
+      const asset = await storage.updateAsset(req.params.id, req.body);
+      if (!asset) {
+        return res.status(404).json({ error: "Asset nicht gefunden" });
+      }
+      res.json(asset);
+    } catch (error) {
+      res.status(500).json({ error: "Fehler beim Aktualisieren des Assets" });
+    }
+  });
+
+  // Delete asset
+  app.delete("/api/assets/:id", async (req, res) => {
+    try {
+      const asset = await storage.getAsset(req.params.id);
+      if (!asset) {
+        return res.status(404).json({ error: "Asset nicht gefunden" });
+      }
+
+      // Delete file from filesystem
+      if (asset.path) {
+        try {
+          await fs.unlink(asset.path);
+        } catch (error) {
+          console.warn('Could not delete file:', error);
+        }
+      }
+
+      const deleted = await storage.deleteAsset(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Asset nicht gefunden" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Fehler beim Löschen des Assets" });
+    }
+  });
+
   // Dashboard Stats
   app.get("/api/stats", async (req, res) => {
     try {

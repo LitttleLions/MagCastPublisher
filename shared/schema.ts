@@ -113,10 +113,23 @@ export const insertRenderJobSchema = createInsertSchema(renderJobs).omit({
   completedAt: true,
 });
 
-export const insertAssetSchema = createInsertSchema(assets).omit({
-  id: true,
-  createdAt: true,
+export const assetSchema = z.object({
+  id: z.string(),
+  filename: z.string(),
+  path: z.string().optional(),
+  originalUrl: z.string(),
+  processedUrl: z.string().optional(),
+  size: z.number(),
+  mimeType: z.string(),
+  status: z.enum(["uploading", "processing", "ready", "failed"]).optional(),
+  width: z.number().optional(),
+  height: z.number().optional(),
+  dpi: z.number().optional(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
 });
+
+export const insertAssetSchema = assetSchema.omit({ id: true, createdAt: true, updatedAt: true });
 
 // JSON ingestion schema
 export const jsonIssueSchema = z.object({
