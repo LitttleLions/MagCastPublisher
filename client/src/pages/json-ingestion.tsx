@@ -183,6 +183,70 @@ export default function JsonIngestion() {
     setJsonInput(JSON.stringify(sampleJson, null, 2));
   };
 
+  const loadMultiArticleSample = () => {
+    const multiArticleJson = {
+      issue: {
+        id: "2025-11",
+        title: "Vielfalt & Innovation Magazin",
+        date: "2025-11-01"
+      },
+      sections: ["Editorial", "Technologie", "Wirtschaft", "Lifestyle"],
+      articles: [
+        {
+          id: "ki-zukunft",
+          section: "Technologie",
+          type: "feature",
+          title: "KI verändert unsere Zukunft",
+          dek: "Wie künstliche Intelligenz Branchen revolutioniert",
+          author: "Dr. Anna Technik",
+          body_html: "<p>Künstliche Intelligenz ist nicht mehr nur Science Fiction. Sie verändert bereits heute grundlegend, wie wir arbeiten, leben und kommunizieren.</p><h2>Die Revolution hat begonnen</h2><p>Von selbstfahrenden Autos bis hin zu intelligenten Assistenten – KI ist überall. Die Technologie entwickelt sich so schnell, dass selbst Experten überrascht sind.</p><blockquote>\"KI wird die nächste industrielle Revolution sein\"</blockquote><p>Unternehmen investieren Milliarden in KI-Forschung. Die Auswirkungen werden in allen Bereichen spürbar sein.</p>",
+          images: [
+            {
+              src: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e",
+              role: "hero",
+              caption: "KI-Technologie im Einsatz",
+              credit: "Foto: Unsplash",
+              focal_point: "0.5,0.3"
+            }
+          ]
+        },
+        {
+          id: "startup-boom",
+          section: "Wirtschaft",
+          type: "article",
+          title: "Der neue Startup-Boom",
+          dek: "Warum jetzt die beste Zeit für Gründer ist",
+          author: "Maria Gründerin",
+          body_html: "<p>Die Startup-Szene erlebt einen neuen Aufschwung. Investoren suchen nach innovativen Ideen und sind bereit, Risiken einzugehen.</p><h2>Chancen nutzen</h2><p>Die Digitalisierung hat neue Märkte geschaffen. Besonders in den Bereichen FinTech, HealthTech und CleanTech gibt es großes Potenzial.</p><p>Erfolgreiche Gründer betonen: <em>\"Der richtige Zeitpunkt ist jetzt\"</em>. Die Infrastruktur war noch nie so gut wie heute.</p>",
+          images: [
+            {
+              src: "https://images.unsplash.com/photo-1556761175-b413da4baf72",
+              role: "hero",
+              caption: "Moderne Bürolandschaft",
+              credit: "Foto: Unsplash",
+              focal_point: "0.6,0.4"
+            }
+          ]
+        },
+        {
+          id: "sustainable-living",
+          section: "Lifestyle",
+          type: "reportage",
+          title: "Nachhaltigkeit im Alltag",
+          author: "Tom Öko",
+          body_html: "<p>Nachhaltiges Leben muss nicht kompliziert sein. Kleine Änderungen können große Wirkung haben.</p><h2>Einfache Schritte</h2><p>Vom Verzicht auf Plastikbeutel bis hin zum bewussten Konsum – jeder kann einen Beitrag leisten. Die Generation Z macht es vor.</p><p>Besonders wichtig: Nachhaltigkeit sollte bezahlbar bleiben. Es geht nicht darum, perfekt zu sein, sondern besser zu werden.</p>",
+          images: []
+        }
+      ]
+    };
+    
+    setJsonInput(JSON.stringify(multiArticleJson, null, 2));
+    toast({
+      title: "Mehrere Artikel geladen",
+      description: "Beispiel mit 3 Artikeln in verschiedenen Rubriken",
+    });
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('de-DE');
   };
@@ -221,6 +285,52 @@ export default function JsonIngestion() {
         ...editValues[issueId],
         [field]: value
       }
+    });
+  };
+
+  const generateJsonTemplate = (issue: Issue) => {
+    const template = {
+      issue: {
+        id: issue.issueId,
+        title: issue.title,
+        date: issue.date
+      },
+      sections: issue.sections || ["Hauptteil", "Service", "Editorial"],
+      articles: [
+        {
+          id: "beispiel-artikel-1",
+          section: issue.sections?.[0] || "Hauptteil",
+          type: "feature",
+          title: "Beispiel-Artikel Titel",
+          dek: "Kurzer Vorspann oder Untertitel",
+          author: "Ihr Name",
+          body_html: "<p>Hier kommt der HTML-Inhalt des Artikels...</p><h2>Zwischenüberschrift</h2><p>Weiterer Absatz mit <strong>wichtigen</strong> Informationen.</p>",
+          images: [
+            {
+              src: "https://images.unsplash.com/photo-1519389950473-47ba0277781c",
+              role: "hero",
+              caption: "Beispiel-Bildunterschrift",
+              credit: "Foto: Unsplash",
+              focal_point: "0.5,0.3"
+            }
+          ]
+        },
+        {
+          id: "beispiel-artikel-2", 
+          section: issue.sections?.[1] || "Service",
+          type: "article",
+          title: "Zweiter Artikel",
+          author: "Anderer Autor",
+          body_html: "<p>Inhalt des zweiten Artikels...</p>",
+          images: []
+        }
+      ]
+    };
+    
+    setJsonInput(JSON.stringify(template, null, 2));
+    toast({
+      title: "JSON-Vorlage generiert",
+      description: `Vorlage für "${issue.title}" wurde in das Eingabefeld geladen`,
     });
   };
 
@@ -330,7 +440,7 @@ export default function JsonIngestion() {
                     <TableHead className="w-[120px]">Datum</TableHead>
                     <TableHead className="w-[100px]">Status</TableHead>
                     <TableHead>Rubriken</TableHead>
-                    <TableHead className="w-[100px]">Aktionen</TableHead>
+                    <TableHead className="w-[120px]">Aktionen</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -411,13 +521,24 @@ export default function JsonIngestion() {
                             </Button>
                           </div>
                         ) : (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => startEditing(issue)}
-                          >
-                            <Edit className="w-3 h-3" />
-                          </Button>
+                          <div className="flex space-x-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => startEditing(issue)}
+                              title="Bearbeiten"
+                            >
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => generateJsonTemplate(issue)}
+                              title="JSON-Vorlage generieren"
+                            >
+                              <FileText className="w-3 h-3" />
+                            </Button>
+                          </div>
                         )}
                       </TableCell>
                     </TableRow>
@@ -439,14 +560,24 @@ export default function JsonIngestion() {
                   <FileText className="w-5 h-5 text-slate-600" />
                   <h2 className="text-lg font-semibold text-slate-900">JSON-Daten Import</h2>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={loadSampleData}
-                  data-testid="button-load-sample"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Beispiel laden
-                </Button>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={loadSampleData}
+                    data-testid="button-load-sample"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Einzelartikel
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={loadMultiArticleSample}
+                    data-testid="button-load-multi-sample"
+                  >
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    Mehrere Artikel
+                  </Button>
+                </div>
               </div>
               <p className="text-sm text-slate-600 mt-1">
                 Importiere vollständige Magazine-Daten mit Artikeln und Bildern
