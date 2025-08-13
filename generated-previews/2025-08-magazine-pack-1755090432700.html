@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MagCast Preview</title>
+    <style>
+        
+      /* CSS Reset and Base Styles */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      /* Paged Media Rules for Print/PDF */
+      @page {
+        size: A4;
+        margin: 15mm 15mm 20mm 15mm;
+        marks: crop cross;
+        bleed: 3mm;
+        
+        @top-center {
+          content: "Magazine Pack";
+          font-size: 8pt;
+          color: #666;
+        }
+        
+        @bottom-center {
+          content: counter(page);
+          font-size: 10pt;
+        }
+        
+        @bottom-left {
+          content: "8/13/2025";
+          font-size: 8pt;
+          color: #666;
+        }
+      }
+
+      @page :first {
+        @top-center { content: none; }
+        @bottom-center { content: none; }
+        @bottom-left { content: none; }
+      }
+
+      /* Typography Base */
+      body {
+        font-family: 'Times New Roman', serif;
+        color: #1a1a1a;
+        background: white;
+        counter-reset: page;
+      }
+
+      .magazine {
+        max-width: 210mm;
+        margin: 0 auto;
+        background: white;
+      }
+
+      /* Cover Page */
+      .cover-page {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        page-break-after: always;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40mm;
+      }
+
+      .cover-title {
+        font-size: 48pt;
+        font-weight: bold;
+        margin-bottom: 24pt;
+        line-height: 1.1;
+      }
+
+      .cover-issue {
+        font-size: 24pt;
+        margin-bottom: 12pt;
+        opacity: 0.9;
+      }
+
+      .cover-date {
+        font-size: 16pt;
+        opacity: 0.8;
+      }
+
+      /* Table of Contents */
+      .toc-page {
+        page-break-before: always;
+        page-break-after: always;
+        padding: 40pt 0;
+      }
+
+      .toc-title {
+        font-size: 28pt;
+        font-weight: bold;
+        margin-bottom: 24pt;
+        text-align: center;
+        border-bottom: 2px solid #1a1a1a;
+        padding-bottom: 12pt;
+      }
+
+      .toc-section {
+        margin-bottom: 24pt;
+      }
+
+      .toc-section-title {
+        font-size: 16pt;
+        font-weight: bold;
+        margin-bottom: 12pt;
+        color: #667eea;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .toc-entry {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 8pt;
+        padding-bottom: 4pt;
+        border-bottom: 1px dotted #ccc;
+      }
+
+      .toc-article-title {
+        font-size: 12pt;
+        flex-grow: 1;
+      }
+
+      .toc-author {
+        font-size: 10pt;
+        color: #666;
+        margin: 0 12pt;
+      }
+
+      .toc-page-number {
+        font-size: 12pt;
+        font-weight: bold;
+        color: #667eea;
+      }
+
+      /* Article Styles */
+      .magazine-article {
+        page-break-before: auto;
+        page-break-after: auto;
+        padding: 24pt 0;
+        border-bottom: 1px solid #e0e0e0;
+        margin-bottom: 24pt;
+      }
+
+      .magazine-article:last-child {
+        border-bottom: none;
+      }
+
+      /* Image Styles */
+      .article-image {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        break-inside: avoid;
+      }
+
+      .hero-image-container {
+        margin-bottom: 24pt;
+        column-span: all;
+        break-after: avoid;
+      }
+
+      .inline-image-container {
+        margin: 12pt 0;
+        break-inside: avoid;
+      }
+
+      .image-caption {
+        font-size: 9pt;
+        line-height: 1.3;
+        margin-top: 6pt;
+        font-style: italic;
+        color: #666;
+      }
+
+      .image-credit {
+        font-size: 8pt;
+        color: #999;
+        margin-top: 3pt;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      /* Imprint */
+      .imprint-page {
+        page-break-before: always;
+        padding: 40pt 0;
+        font-size: 9pt;
+        line-height: 1.4;
+        color: #666;
+      }
+
+      .imprint-title {
+        font-size: 14pt;
+        font-weight: bold;
+        margin-bottom: 18pt;
+        color: #1a1a1a;
+      }
+
+      .imprint-section {
+        margin-bottom: 12pt;
+      }
+
+      /* Utility Classes */
+      .page-break {
+        page-break-before: always;
+      }
+
+      .avoid-break {
+        break-inside: avoid;
+      }
+
+      .text-center {
+        text-align: center;
+      }
+
+      .text-uppercase {
+        text-transform: uppercase;
+      }
+
+      /* Print Optimizations */
+      @media print {
+        body {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        
+        .magazine-article {
+          orphans: 2;
+          widows: 2;
+        }
+      }
+
+      /* Responsive Adjustments for Screen Preview */
+      @media screen and (max-width: 768px) {
+        .magazine {
+          padding: 20pt;
+        }
+        
+        .cover-page {
+          height: auto;
+          min-height: 100vh;
+        }
+        
+        .article-content {
+          column-count: 1 !important;
+        }
+      }
+    
+        
+        /* Additional preview styles */
+        .preview-header {
+            background: #f5f5f5;
+            padding: 20px;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 40px;
+            text-align: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        .preview-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .layout-decisions {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 40px auto;
+            max-width: 800px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        .decision-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-left: 4px solid #667eea;
+            background: #f8f9ff;
+        }
+        
+        .warning {
+            color: #e67e22;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        /* Print-specific styles for better preview */
+        @media print {
+            .preview-header,
+            .layout-decisions {
+                display: none;
+            }
+        }
+        
+        /* Responsive adjustments */
+        @media screen and (max-width: 768px) {
+            .magazine {
+                padding: 10px;
+            }
+            
+            .preview-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-header">
+        <div class="preview-info">
+            <div>
+                <h3>MagCast Layout Preview</h3>
+                <p>Generiert am 13.8.2025, 13:07:12</p>
+            </div>
+            <div>
+                <strong>Geschätzte Seiten:</strong> 4<br>
+                <strong>Layout-Entscheidungen:</strong> 1
+            </div>
+        </div>
+    </div>
+    
+    <div class="layout-decisions">
+        <h4>Layout-Algorithmus Entscheidungen</h4>
+        
+            <div class="decision-item">
+                <strong>Artikel 1:</strong>
+                Variante: magazine-editorial, 
+                Score: 115, 
+                Font: 9.7pt,
+                Spalten: 2
+                
+            </div>
+        
+        
+    </div>
+    
+    
+      
+      
+      
+      
+        <div class="magazine">
+          <!-- Cover Page -->
+          
+      <div class="cover-page">
+        <h1 class="cover-title">Ostsee Observer Magazin</h1>
+        <div class="cover-issue">Ausgabe 2025-08</div>
+        <div class="cover-date">13. August 2025</div>
+      </div>
+    
+          
+          <!-- Table of Contents -->
+          
+      <div class="toc-page">
+        <h2 class="toc-title">Inhalt</h2>
+    
+        <div class="toc-section">
+          <h3 class="toc-section-title">Wirtschaft</h3>
+      
+          <div class="toc-entry">
+            <span class="toc-article-title">Dollarschock und Zuckererbsen</span>
+            <span class="toc-author">Ostsee Observer</span>
+            <span class="toc-page-number">3</span>
+          </div>
+        </div></div>
+          
+          <!-- Articles -->
+          
+        <article class="magazine-article" style="page-break-before: auto;">
+          <style scoped>
+            
+      .article-content {
+        font-size: 9.7pt;
+        line-height: 1.39;
+        column-count: 2;
+        column-gap: 24px;
+        column-fill: balance;
+        orphans: 2;
+        widows: 2;
+        hyphens: auto;
+      }
+
+      .article-title {
+        font-size: 27pt;
+        line-height: 1.2;
+        margin-bottom: 12pt;
+        column-span: all;
+        break-after: avoid;
+      }
+
+      .article-dek {
+        font-size: 12pt;
+        line-height: 1.4;
+        margin-bottom: 18pt;
+        column-span: all;
+        font-weight: 500;
+        break-after: avoid;
+      }
+
+      .article-author {
+        font-size: 9pt;
+        margin-bottom: 24pt;
+        column-span: all;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        break-after: avoid;
+      }
+
+      .article-body p {
+        margin-bottom: 8pt;
+        break-inside: avoid-column;
+      }
+
+      .article-body p:first-child::first-letter {
+        font-size: 34pt;
+        line-height: 1;
+        float: left;
+        margin: 0 8pt 0 0;
+        font-weight: bold;
+      }
+    
+        .hero-image {
+          width: 100%;
+          height: 55vh;
+          object-fit: cover;
+          margin-bottom: 24pt;
+          column-span: all;
+          break-after: avoid;
+        }
+      
+        .pullquote {
+          font-size: 14pt;
+          line-height: 1.3;
+          font-weight: bold;
+          margin: 18pt 0;
+          padding: 12pt 0;
+          border-top: 2px solid #333;
+          border-bottom: 2px solid #333;
+          column-span: all;
+          break-inside: avoid;
+        }
+      
+      .inline-image {
+        width: 100%;
+        margin: 12pt 0;
+        break-inside: avoid;
+      }
+
+      .image-caption {
+        font-size: 8pt;
+        line-height: 1.3;
+        margin-top: 6pt;
+        font-style: italic;
+        color: #666;
+      }
+
+      .image-credit {
+        font-size: 7pt;
+        color: #999;
+        margin-top: 3pt;
+      }
+    
+          </style>
+          
+        <div class="hero-image-container">
+          <img src="https://files.oaiusercontent.com/file_00000000d338620a960d8ddd01ca2a22/3541c4ce-e1fd-4085-b00e-f0c0412f6b68.png" 
+               alt="Milei vs. der Dollar-Glaube: Eine ökonomische Abrechnung"
+               class="article-image hero-image"
+               style="object-position: 0.5,0.4;">
+          <div class="image-caption">Milei vs. der Dollar-Glaube: Eine ökonomische Abrechnung</div>
+          <div class="image-credit">DALL·E / Ostsee Observer</div>
+        </div>
+      
+      <header class="article-header">
+        <h1 class="article-title">Dollarschock und Zuckererbsen</h1>
+        <div class="article-dek">Warum Präsident Milei Ökonomen zerlegt und Heinrich Heine zustimmt</div>
+        <div class="article-author">Von Ostsee Observer</div>
+      </header>
+    
+      <div class="article-content">
+        <div class="article-body">
+          <p>Mit einem Bier am Strand, der Wind rauscht, die Börsen zittern. Und drüben in Argentinien? Da erklärt ein Präsident, dass der Dollar gar nichts macht – außer Ökonomen zu entlarven. Ein Thread über Geld, Glauben und warum Menger über allem wacht.</p><h2>Der alte Tanz ums grüne Kalb</h2><p>In Buenos Aires fliegen mal wieder die Theorien wie Möwen um Pommes: Jeder weiß es besser, wenn der Dollar steigt – doch keiner erklärt, warum das angeblich automatisch die Preise hochtreibt. Präsident Javier Milei winkt ab wie ein alter Fischer, der die Sturmwarnung ignoriert: „Passthrough? Humbug!“ ruft er – und zückt Menger statt Mauszeiger.</p><p>Denn während viele Experten den Wechselkurs wie ein magisches Totem behandeln, stellt Milei klar: Der Dollar ist kein Gott, sondern ein Symptom.</p><h2>Geld kommt nicht vom Himmel – es kommt vom Tausch</h2><p>Stellen wir uns mal eine Welt ohne Geld vor. So eine richtige, knallharte Tauschökonomie: Ich geb dir ein Lied, du gibst mir ein Brötchen. Klingt romantisch, scheitert aber schneller als ein Gründungspitch bei „Höhle der Löwen“. Warum? Weil mein Lied nicht in halbe Brötchen teilbar ist – und du vielleicht gar keinen Bock auf meine Stimme hast.</p><p>So entstand das Geld – als Lösung für das Drama der „doppelten Zufallsbedürfnisse“. Menschen tauschten nicht mehr direkt, sondern über Dritte, die besonders tauschbare Dinge horteten.</p><h2>Inflation: Kein Naturereignis, sondern monetäre Eruption</h2><p>Mileis These schäumt wie eine schlecht gezapfte Maß: Inflation ist immer monetär. Punkt. Sie entsteht, wenn der Staat mehr Geld druckt, als die Menschen eigentlich haben wollen. Wer meint, dass Inflation vom Wechselkurs kommt, glaubt auch, dass der Hund die Leine spazieren führt.</p><h2>Der Hume-Cantillon-Effekt: Von Möwen und Milliardären</h2><p>Ein besonders hübsches Bild malt Milei mit dem Hume-Cantillon-Effekt. Es ist wie beim Strandverkauf: Wer als Erster den frischen Fang bekommt, kann noch günstig kaufen – der Nächste zahlt schon mehr. Was aussieht wie „Dollar getrieben“, ist in Wahrheit ein Dominoeffekt staatlicher Gier und planloser Geldflut.
+          <blockquote class="pullquote">
+            Mit einem Bier am Strand, der Wind rauscht, die Börsen zittern
+          </blockquote>
+        </p><h2>Der Dornbusch-Overshoot und die Mär vom magischen Dollar</h2><p>Und wenn dann doch der Wechselkurs springt? Der Finanzmarkt reagiert über, die Realwirtschaft trudelt hinterher wie ein rostiger Kutter. Wer dann behauptet, der Wechselkurs bestimme alle Preise, jongliert mit endogenen und exogenen Variablen wie ein Clown auf Glatteis.</p><h2>Keine Inflation ohne monetäre Beichte</h2><p>Wenn der Staat versucht, einen relativen Preis (z. B. für Gut B) mit Gelddruck zu stabilisieren, während Gut A wegen Knappheit teurer wird, gibt es Inflation. Ohne monetäre Bestätigung? Nur ein Preisspiel. Wie Heine sagte: „Zuckererbsen für jedermann“, aber eben nur, wenn man den Drucker auslässt.</p><h2>Sensorische Trugschlüsse und das Sommer-Badehosen-Syndrom</h2><p>Warum glauben die Leute an den Dollar-Preis-Mythos? Weil es 90 Jahre lang so war. Immer wenn der Dollar stieg, stiegen die Preise – außer während der Convertibilidad. Das ist wie zu glauben, dass Badehosen den Sommer bringen. Milei winkt ab: Das ist keine Kausalität, das ist ein Wetterbericht auf LSD.</p><h2>Schlussgedanken: Menger am Horizont, Heine im Ohr</h2><p>Was bleibt? Ein Präsident, der sich nicht scheut, mit Carl Menger unter dem Arm und Heine in der Brusttasche gegen die ökonomischen Irrtümer zu segeln. Die Sonne geht unter, das Bier ist leer, und irgendwo in der Ferne rauscht die nächste Debatte heran. Was würde Bartlet sagen? Ganz klar: „What’s next?“</p>
+        </div>
+      </div>
+    
+        </article>
+      
+          
+          <!-- Imprint -->
+          
+      <div class="imprint-page">
+        <h2 class="imprint-title">Impressum</h2>
+        
+        <div class="imprint-section">
+          <strong>Herausgeber:</strong><br>
+          MagCast Publishing GmbH<br>
+          Musterstraße 123<br>
+          12345 Musterstadt
+        </div>
+        
+        <div class="imprint-section">
+          <strong>Redaktion:</strong><br>
+          Chefredaktion: Max Mustermann<br>
+          E-Mail: redaktion@magcast.de
+        </div>
+        
+        <div class="imprint-section">
+          <strong>Ausgabe:</strong><br>
+          Ostsee Observer Magazin - 2025-08<br>
+          Erscheinungsdatum: 13.8.2025
+        </div>
+        
+        <div class="imprint-section">
+          <strong>Technische Umsetzung:</strong><br>
+          Automatisiert erstellt mit MagCast Publishing Engine<br>
+          Template: Magazine Pack vv3.0.1
+        </div>
+        
+        <div class="imprint-section">
+          <strong>Copyright:</strong><br>
+          Alle Rechte vorbehalten. Nachdruck, auch auszugsweise, nur mit ausdrücklicher Genehmigung des Verlags.
+        </div>
+      </div>
+    
+        </div>
+      
+      
+    
+</body>
+</html>
