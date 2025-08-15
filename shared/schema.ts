@@ -9,7 +9,7 @@ export const issues = sqliteTable("issues", {
   title: text("title").notNull(),
   issueId: text("issue_id").notNull().unique(), // e.g., "2025-09"
   date: text("date").notNull(),
-  sections: text("sections").notNull().default("[]"), // JSON string
+  sections: text("sections").notNull().default("[]"), // JSON array
   status: text("status").notNull().default("draft"), // draft, processing, completed, failed
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),

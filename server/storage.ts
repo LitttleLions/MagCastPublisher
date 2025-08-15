@@ -179,6 +179,7 @@ export class MemStorage implements IStorage {
           pdfUrl TEXT,
           errorMessage TEXT,
           successMessage TEXT,
+          metadata TEXT,
           startedAt TEXT,
           completedAt TEXT,
           createdAt TEXT NOT NULL,
@@ -359,7 +360,11 @@ export class MemStorage implements IStorage {
           console.error("Error fetching issues:", err);
           reject(err);
         } else {
-          resolve(rows as Issue[]);
+          const issues = (rows as Issue[]).map(issue => ({
+            ...issue,
+            sections: typeof issue.sections === 'string' ? JSON.parse(issue.sections) : issue.sections
+          }));
+          resolve(issues);
         }
       });
     });
@@ -372,7 +377,13 @@ export class MemStorage implements IStorage {
           console.error("Error fetching issue:", err);
           reject(err);
         } else {
-          resolve(row as Issue);
+          if (row) {
+            const issue = row as Issue;
+            issue.sections = typeof issue.sections === 'string' ? JSON.parse(issue.sections) : issue.sections;
+            resolve(issue);
+          } else {
+            resolve(undefined);
+          }
         }
       });
     });
