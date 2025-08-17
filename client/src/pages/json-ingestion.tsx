@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, FileText, CheckCircle, Plus, Calendar, FolderOpen, BookOpen, Edit, Save, X, Trash2 } from "lucide-react";
@@ -39,12 +39,28 @@ export default function JsonIngestion() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch existing magazines with no caching
-  const { data: magazines = [], isLoading: loadingMagazines, refetch: refetchMagazines } = useQuery<Issue[]>({
-    queryKey: ["/api/issues"],
-    staleTime: 0,
-    gcTime: 0, // Don't cache at all
-  });
+  // Direct fetch without caching - reload magazines list
+  const [magazines, setMagazines] = useState<Issue[]>([]);
+  const [loadingMagazines, setLoadingMagazines] = useState(true);
+
+  const loadMagazines = async () => {
+    try {
+      setLoadingMagazines(true);
+      const response = await fetch('/api/issues');
+      const data = await response.json();
+      setMagazines(data);
+    } catch (error) {
+      console.error('Error loading magazines:', error);
+      setMagazines([]);
+    } finally {
+      setLoadingMagazines(false);
+    }
+  };
+
+  // Load magazines on component mount
+  useEffect(() => {
+    loadMagazines();
+  }, []);
 
   const processJsonMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -52,10 +68,8 @@ export default function JsonIngestion() {
       return response.json();
     },
     onSuccess: () => {
-      // Force refetch immediately
-      queryClient.invalidateQueries({ queryKey: ["/api/issues"] });
-      queryClient.refetchQueries({ queryKey: ["/api/issues"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      // Reload magazines directly after successful import
+      loadMagazines();
       toast({
         title: "Erfolg",
         description: "JSON-Daten wurden erfolgreich verarbeitet",
@@ -97,8 +111,8 @@ export default function JsonIngestion() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/issues"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      // Reload magazines after creating new one
+      loadMagazines();
       toast({
         title: "Erfolg",
         description: "Magazin wurde erfolgreich erstellt",
@@ -137,7 +151,8 @@ export default function JsonIngestion() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/issues"] });
+      // Reload magazines after update
+      loadMagazines();
       toast({
         title: "Erfolg",
         description: "Magazin wurde erfolgreich aktualisiert",
@@ -162,8 +177,8 @@ export default function JsonIngestion() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/issues"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      // Reload magazines after deletion
+      loadMagazines();
       toast({
         title: "Erfolg",
         description: "Magazin wurde erfolgreich gelöscht",
