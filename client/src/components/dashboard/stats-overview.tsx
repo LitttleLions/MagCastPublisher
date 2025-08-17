@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Settings, FileImage, Layers } from "lucide-react";
+import { useState, useEffect } from "react";
 
 interface Stats {
   activeIssues: number;
@@ -11,9 +11,25 @@ interface Stats {
 }
 
 export default function StatsOverview() {
-  const { data: stats, isLoading } = useQuery<Stats>({
-    queryKey: ["/api/stats"],
-  });
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadStats = async () => {
+    try {
+      const response = await fetch('/api/stats');
+      const data = await response.json();
+      setStats(data);
+    } catch (error) {
+      console.error('Error loading stats:', error);
+      setStats(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadStats();
+  }, []);
 
   if (isLoading) {
     return (

@@ -1,19 +1,35 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { type TemplatePack } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Layers, Eye, Settings, Download } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export default function Templates() {
-  const { data: packs = [], isLoading } = useQuery<TemplatePack[]>({
-    queryKey: ["/api/template-packs"],
-  });
-
+  const [packs, setPacks] = useState<TemplatePack[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+
+  const loadPacks = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/template-packs');
+      const data = await response.json();
+      setPacks(data);
+    } catch (error) {
+      console.error('Error loading template packs:', error);
+      setPacks([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPacks();
+  }, []);
 
   const updatePackMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<TemplatePack> }) => {
@@ -21,7 +37,8 @@ export default function Templates() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/template-packs"] });
+      // Reload template packs after update
+      loadPacks();
       toast({
         title: "Success",
         description: "Template pack updated successfully",

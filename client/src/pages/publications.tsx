@@ -1,10 +1,9 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
 import { type RenderJob, type Issue } from "@shared/schema";
 import { Download, FileText, Calendar, User, Eye, Share } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,14 +18,38 @@ interface PublicationWithIssue extends RenderJob {
 
 export default function Publications() {
   const [previewPublication, setPreviewPublication] = useState<PublicationWithIssue | null>(null);
+  const [jobs, setJobs] = useState<RenderJob[]>([]);
+  const [issues, setIssues] = useState<Issue[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(true);
 
-  const { data: jobs = [], isLoading: jobsLoading } = useQuery<RenderJob[]>({
-    queryKey: ["/api/render-jobs"],
-  });
+  const loadJobs = async () => {
+    try {
+      const response = await fetch('/api/render-jobs');
+      const data = await response.json();
+      setJobs(data);
+    } catch (error) {
+      console.error('Error loading jobs:', error);
+      setJobs([]);
+    }
+  };
 
-  const { data: issues = [] } = useQuery<Issue[]>({
-    queryKey: ["/api/issues"],
-  });
+  const loadIssues = async () => {
+    try {
+      const response = await fetch('/api/issues');
+      const data = await response.json();
+      setIssues(data);
+    } catch (error) {
+      console.error('Error loading issues:', error);
+      setIssues([]);
+    } finally {
+      setJobsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadJobs();
+    loadIssues();
+  }, []);
 
   // Combine render jobs with issue data for completed publications
   const publications: PublicationWithIssue[] = jobs

@@ -1,17 +1,34 @@
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Check, Loader2, Clock, Download } from "lucide-react";
 import { type RenderJob } from "@shared/schema";
+import { useState, useEffect } from "react";
 
 export default function RecentJobs() {
-  const { data: jobs = [], isLoading } = useQuery<RenderJob[]>({
-    queryKey: ["/api/render-jobs"],
-    refetchInterval: 2000, // Poll every 2 seconds
-    refetchIntervalInBackground: false,
-  });
+  const [jobs, setJobs] = useState<RenderJob[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadJobs = async () => {
+    try {
+      const response = await fetch('/api/render-jobs');
+      const data = await response.json();
+      setJobs(data);
+    } catch (error) {
+      console.error('Error loading jobs:', error);
+      setJobs([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadJobs();
+    // Poll every 2 seconds
+    const interval = setInterval(loadJobs, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
   const getStatusIcon = (status: string, progress?: number) => {
     switch (status) {

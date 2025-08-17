@@ -2,12 +2,12 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { type RenderJob, type Issue, type TemplatePack } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Play, Download, Trash2, Clock, CheckCircle, AlertCircle } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -23,22 +23,58 @@ export default function RenderQueue() {
   const [createJobOpen, setCreateJobOpen] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState<string>("");
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
+  const [jobs, setJobs] = useState<RenderJob[]>([]);
+  const [issues, setIssues] = useState<Issue[]>([]);
+  const [templates, setTemplates] = useState<TemplatePack[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(true);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
-  const { data: jobs = [], isLoading: jobsLoading } = useQuery<RenderJob[]>({
-    queryKey: ["/api/render-jobs"],
-    refetchInterval: 1000, // Poll every second for active jobs
-    refetchIntervalInBackground: false,
-  });
+  // Load all data functions
+  const loadJobs = async () => {
+    try {
+      const response = await fetch('/api/render-jobs');
+      const data = await response.json();
+      setJobs(data);
+    } catch (error) {
+      console.error('Error loading jobs:', error);
+      setJobs([]);
+    } finally {
+      setJobsLoading(false);
+    }
+  };
 
-  const { data: issues = [] } = useQuery<Issue[]>({
-    queryKey: ["/api/issues"],
-  });
+  const loadIssues = async () => {
+    try {
+      const response = await fetch('/api/issues');
+      const data = await response.json();
+      setIssues(data);
+    } catch (error) {
+      console.error('Error loading issues:', error);
+      setIssues([]);
+    }
+  };
 
-  const { data: templates = [] } = useQuery<TemplatePack[]>({
-    queryKey: ["/api/template-packs"],
-  });
+  const loadTemplates = async () => {
+    try {
+      const response = await fetch('/api/template-packs');
+      const data = await response.json();
+      setTemplates(data);
+    } catch (error) {
+      console.error('Error loading templates:', error);
+      setTemplates([]);
+    }
+  };
+
+  // Load all data on mount and poll for jobs
+  useEffect(() => {
+    loadJobs();
+    loadIssues();
+    loadTemplates();
+
+    // Poll for job updates every second
+    const interval = setInterval(loadJobs, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const createJobMutation = useMutation({
     mutationFn: async (data: { issueId: string; templatePackId: string; renderer: string }) => {
@@ -46,8 +82,8 @@ export default function RenderQueue() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/render-jobs"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      // Reload jobs after creation
+      loadJobs();
       toast({
         title: "Success",
         description: "Render job created successfully",

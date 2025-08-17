@@ -1,8 +1,8 @@
 
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { useState, useEffect } from "react";
 
 interface LayoutDecision {
   articleId: string;
@@ -43,16 +43,32 @@ interface LayoutEngineStats {
 }
 
 export default function LayoutEngine() {
-  const { data: engineStats, isLoading, error } = useQuery<LayoutEngineStats>({
-    queryKey: ['layout-engine-stats'],
-    queryFn: async () => {
+  const [engineStats, setEngineStats] = useState<LayoutEngineStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadEngineStats = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
       const response = await fetch('/api/layout-engine/stats');
       if (!response.ok) {
         throw new Error('Failed to fetch layout engine stats');
       }
-      return response.json();
-    },
-  });
+      const data = await response.json();
+      setEngineStats(data);
+    } catch (error) {
+      console.error('Error loading layout engine stats:', error);
+      setError(error instanceof Error ? error.message : 'Unknown error');
+      setEngineStats(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadEngineStats();
+  }, []);
 
   if (isLoading) {
     return (
