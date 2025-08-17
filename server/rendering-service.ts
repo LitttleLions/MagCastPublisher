@@ -153,6 +153,12 @@ export class RenderingService {
       // Fallback to HTML rendering if PDF failed
       if (!pdfSuccess) {
         console.log('Falling back to HTML preview generation');
+        await this.updateJobProgress(jobId, {
+          status: 'processing',
+          progress: 90,
+          message: 'Generating HTML preview...',
+        });
+
         const filename = `${issue.issueId}-${templatePack.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`;
         const htmlResult = await htmlRenderer.renderHTML(template, filename);
 
@@ -163,24 +169,18 @@ export class RenderingService {
         console.log(`HTML preview saved: ${htmlResult.htmlPath}`);
       }
 
-      // Check if job was cancelled
+      // Check if job was cancelled before completing
       if (abortController.signal.aborted) {
         throw new Error('Job was cancelled');
       }
 
-      await this.updateJobProgress(jobId, {
-        status: 'processing',
-        progress: 95,
-        message: 'Finalizing...',
-      });
-
-      // Complete job
+      // Complete job immediately without additional delay
+      console.log(`Completing job ${jobId} with output: ${outputPath}`);
       await this.updateJobProgress(jobId, {
         status: 'completed',
         progress: 100,
         message: 'Rendering completed successfully',
         pdfPath: outputPath,
-        warnings,
       });
 
       console.log(`Render job ${jobId} completed successfully in ${renderTime}ms`);

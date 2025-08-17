@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MagCast Preview</title>
+    <style>
+        
+      /* CSS Reset and Base Styles */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      /* Paged Media Rules for Print/PDF */
+      @page {
+        size: A4;
+        margin: 15mm 15mm 20mm 15mm;
+        marks: crop cross;
+        bleed: 3mm;
+        
+        @top-center {
+          content: "Magazine Pack";
+          font-size: 8pt;
+          color: #666;
+        }
+        
+        @bottom-center {
+          content: counter(page);
+          font-size: 10pt;
+        }
+        
+        @bottom-left {
+          content: "8/17/2025";
+          font-size: 8pt;
+          color: #666;
+        }
+      }
+
+      @page :first {
+        @top-center { content: none; }
+        @bottom-center { content: none; }
+        @bottom-left { content: none; }
+      }
+
+      /* Typography Base */
+      body {
+        font-family: 'Times New Roman', serif;
+        color: #1a1a1a;
+        background: white;
+        counter-reset: page;
+      }
+
+      .magazine {
+        max-width: 210mm;
+        margin: 0 auto;
+        background: white;
+      }
+
+      /* Cover Page */
+      .cover-page {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        page-break-after: always;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40mm;
+      }
+
+      .cover-title {
+        font-size: 48pt;
+        font-weight: bold;
+        margin-bottom: 24pt;
+        line-height: 1.1;
+      }
+
+      .cover-issue {
+        font-size: 24pt;
+        margin-bottom: 12pt;
+        opacity: 0.9;
+      }
+
+      .cover-date {
+        font-size: 16pt;
+        opacity: 0.8;
+      }
+
+      /* Table of Contents */
+      .toc-page {
+        page-break-before: always;
+        page-break-after: always;
+        padding: 40pt 0;
+      }
+
+      .toc-title {
+        font-size: 28pt;
+        font-weight: bold;
+        margin-bottom: 24pt;
+        text-align: center;
+        border-bottom: 2px solid #1a1a1a;
+        padding-bottom: 12pt;
+      }
+
+      .toc-section {
+        margin-bottom: 24pt;
+      }
+
+      .toc-section-title {
+        font-size: 16pt;
+        font-weight: bold;
+        margin-bottom: 12pt;
+        color: #667eea;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .toc-entry {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 8pt;
+        padding-bottom: 4pt;
+        border-bottom: 1px dotted #ccc;
+      }
+
+      .toc-article-title {
+        font-size: 12pt;
+        flex-grow: 1;
+      }
+
+      .toc-author {
+        font-size: 10pt;
+        color: #666;
+        margin: 0 12pt;
+      }
+
+      .toc-page-number {
+        font-size: 12pt;
+        font-weight: bold;
+        color: #667eea;
+      }
+
+      /* Article Styles */
+      .magazine-article {
+        page-break-before: auto;
+        page-break-after: auto;
+        padding: 24pt 0;
+        border-bottom: 1px solid #e0e0e0;
+        margin-bottom: 24pt;
+      }
+
+      .magazine-article:last-child {
+        border-bottom: none;
+      }
+
+      /* Image Styles */
+      .article-image {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        break-inside: avoid;
+      }
+
+      .hero-image-container {
+        margin-bottom: 24pt;
+        column-span: all;
+        break-after: avoid;
+      }
+
+      .inline-image-container {
+        margin: 12pt 0;
+        break-inside: avoid;
+      }
+
+      .image-caption {
+        font-size: 9pt;
+        line-height: 1.3;
+        margin-top: 6pt;
+        font-style: italic;
+        color: #666;
+      }
+
+      .image-credit {
+        font-size: 8pt;
+        color: #999;
+        margin-top: 3pt;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      /* Imprint */
+      .imprint-page {
+        page-break-before: always;
+        padding: 40pt 0;
+        font-size: 9pt;
+        line-height: 1.4;
+        color: #666;
+      }
+
+      .imprint-title {
+        font-size: 14pt;
+        font-weight: bold;
+        margin-bottom: 18pt;
+        color: #1a1a1a;
+      }
+
+      .imprint-section {
+        margin-bottom: 12pt;
+      }
+
+      /* Utility Classes */
+      .page-break {
+        page-break-before: always;
+      }
+
+      .avoid-break {
+        break-inside: avoid;
+      }
+
+      .text-center {
+        text-align: center;
+      }
+
+      .text-uppercase {
+        text-transform: uppercase;
+      }
+
+      /* Print Optimizations */
+      @media print {
+        body {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        
+        .magazine-article {
+          orphans: 2;
+          widows: 2;
+        }
+      }
+
+      /* Responsive Adjustments for Screen Preview */
+      @media screen and (max-width: 768px) {
+        .magazine {
+          padding: 20pt;
+        }
+        
+        .cover-page {
+          height: auto;
+          min-height: 100vh;
+        }
+        
+        .article-content {
+          column-count: 1 !important;
+        }
+      }
+    
+        
+        /* Additional preview styles */
+        .preview-header {
+            background: #f5f5f5;
+            padding: 20px;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 40px;
+            text-align: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        .preview-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .layout-decisions {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 40px auto;
+            max-width: 800px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        .decision-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-left: 4px solid #667eea;
+            background: #f8f9ff;
+        }
+        
+        .warning {
+            color: #e67e22;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        /* Print-specific styles for better preview */
+        @media print {
+            .preview-header,
+            .layout-decisions {
+                display: none;
+            }
+        }
+        
+        /* Responsive adjustments */
+        @media screen and (max-width: 768px) {
+            .magazine {
+                padding: 10px;
+            }
+            
+            .preview-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-header">
+        <div class="preview-info">
+            <div>
+                <h3>MagCast Layout Preview</h3>
+                <p>Generiert am 17.8.2025, 18:24:30</p>
+            </div>
+            <div>
+                <strong>Geschätzte Seiten:</strong> 7<br>
+                <strong>Layout-Entscheidungen:</strong> 3
+            </div>
+        </div>
+    </div>
+    
+    <div class="layout-decisions">
+        <h4>Layout-Algorithmus Entscheidungen</h4>
+        
+            <div class="decision-item">
+                <strong>Artikel 1:</strong>
+                Variante: 323c9116-399b-4ea3-a25f-349340476165, 
+                Score: 85, 
+                Font: 10pt,
+                Spalten: 2
+                
+                    <div class="warning">⚠ 2 columns may be too many for 54 words</div>
+                
+            </div>
+        
+            <div class="decision-item">
+                <strong>Artikel 2:</strong>
+                Variante: 323c9116-399b-4ea3-a25f-349340476165, 
+                Score: 90, 
+                Font: 10pt,
+                Spalten: 2
+                
+                    <div class="warning">⚠ 2 columns may be too many for 52 words</div>
+                
+            </div>
+        
+            <div class="decision-item">
+                <strong>Artikel 3:</strong>
+                Variante: 323c9116-399b-4ea3-a25f-349340476165, 
+                Score: 85, 
+                Font: 10pt,
+                Spalten: 2
+                
+                    <div class="warning">⚠ 2 columns may be too many for 66 words</div>
+                
+            </div>
+        
+        
+            <div style="margin-top: 20px; padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">
+                <strong>Warnungen:</strong> 2 columns may be too many for 54 words, 2 columns may be too many for 52 words, 2 columns may be too many for 66 words
+            </div>
+        
+    </div>
+    
+    
+      
+      
+      
+      
+        <div class="magazine">
+          <!-- Cover Page -->
+          
+      <div class="cover-page">
+        <h1 class="cover-title">Vielfalt &amp; Innovation Magazin</h1>
+        <div class="cover-issue">Ausgabe 2025-11</div>
+        <div class="cover-date">1. November 2025</div>
+      </div>
+    
+          
+          <!-- Table of Contents -->
+          
+      <div class="toc-page">
+        <h2 class="toc-title">Inhalt</h2>
+    
+        <div class="toc-section">
+          <h3 class="toc-section-title">Wirtschaft</h3>
+      
+          <div class="toc-entry">
+            <span class="toc-article-title">Der neue Startup-Boom</span>
+            <span class="toc-author">Maria Gründerin</span>
+            <span class="toc-page-number">3</span>
+          </div>
+        </div>
+        <div class="toc-section">
+          <h3 class="toc-section-title">Lifestyle</h3>
+      
+          <div class="toc-entry">
+            <span class="toc-article-title">Nachhaltigkeit im Alltag</span>
+            <span class="toc-author">Tom Öko</span>
+            <span class="toc-page-number">4</span>
+          </div>
+        </div>
+        <div class="toc-section">
+          <h3 class="toc-section-title">Technologie</h3>
+      
+          <div class="toc-entry">
+            <span class="toc-article-title">KI verändert unsere Zukunft</span>
+            <span class="toc-author">Dr. Anna Technik</span>
+            <span class="toc-page-number">5</span>
+          </div>
+        </div></div>
+          
+          <!-- Articles -->
+          
+        <article class="magazine-article" style="page-break-before: auto;">
+          <style scoped>
+            
+      .article-content {
+        font-size: 10pt;
+        line-height: 1.45;
+        column-count: 2;
+        column-gap: 24px;
+        column-fill: balance;
+        orphans: 2;
+        widows: 2;
+        hyphens: auto;
+      }
+
+      .article-title {
+        font-size: 28pt;
+        line-height: 1.2;
+        margin-bottom: 12pt;
+        column-span: all;
+        break-after: avoid;
+      }
+
+      .article-dek {
+        font-size: 12pt;
+        line-height: 1.4;
+        margin-bottom: 18pt;
+        column-span: all;
+        font-weight: 500;
+        break-after: avoid;
+      }
+
+      .article-author {
+        font-size: 9pt;
+        margin-bottom: 24pt;
+        column-span: all;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        break-after: avoid;
+      }
+
+      .article-body p {
+        margin-bottom: 8pt;
+        break-inside: avoid-column;
+      }
+
+      .article-body p:first-child::first-letter {
+        font-size: 35pt;
+        line-height: 1;
+        float: left;
+        margin: 0 8pt 0 0;
+        font-weight: bold;
+      }
+    
+        .hero-image {
+          width: 100%;
+          height: 35vh;
+          object-fit: cover;
+          margin-bottom: 24pt;
+          column-span: all;
+          break-after: avoid;
+        }
+      
+        .pullquote {
+          font-size: 14pt;
+          line-height: 1.3;
+          font-weight: bold;
+          margin: 18pt 0;
+          padding: 12pt 0;
+          border-top: 2px solid #333;
+          border-bottom: 2px solid #333;
+          column-span: all;
+          break-inside: avoid;
+        }
+      
+      .inline-image {
+        width: 100%;
+        margin: 12pt 0;
+        break-inside: avoid;
+      }
+
+      .image-caption {
+        font-size: 9pt;
+        line-height: 1.3;
+        margin-top: 6pt;
+        font-style: italic;
+        color: #666;
+      }
+
+      .image-credit {
+        font-size: 8pt;
+        color: #999;
+        margin-top: 3pt;
+      }
+    
+          </style>
+          
+        <div class="hero-image-container">
+          <img src="https://images.unsplash.com/photo-1556761175-b413da4baf72" 
+               alt="Moderne Bürolandschaft"
+               class="article-image hero-image"
+               style="object-position: 0.6,0.4;">
+          <div class="image-caption">Moderne Bürolandschaft</div>
+          <div class="image-credit">Foto: Unsplash</div>
+        </div>
+      
+      <header class="article-header">
+        <h1 class="article-title">Der neue Startup-Boom</h1>
+        <div class="article-dek">Warum jetzt die beste Zeit für Gründer ist</div>
+        <div class="article-author">Von Maria Gründerin</div>
+      </header>
+    
+      <div class="article-content">
+        <div class="article-body">
+          <p>Die Startup-Szene erlebt einen neuen Aufschwung. Investoren suchen nach innovativen Ideen und sind bereit, Risiken einzugehen.</p><h2>Chancen nutzen</h2><p>Die Digitalisierung hat neue Märkte geschaffen. Besonders in den Bereichen FinTech, HealthTech und CleanTech gibt es großes Potenzial.</p><p>Erfolgreiche Gründer betonen: <em>"Der richtige Zeitpunkt ist jetzt"</em>. Die Infrastruktur war noch nie so gut wie heute.
+          <blockquote class="pullquote">
+            Die Startup-Szene erlebt einen neuen Aufschwung
+          </blockquote>
+        </p>
+        </div>
+      </div>
+    
+        </article>
+      
+        <article class="magazine-article" style="page-break-before: auto;">
+          <style scoped>
+            
+      .article-content {
+        font-size: 10pt;
+        line-height: 1.45;
+        column-count: 2;
+        column-gap: 24px;
+        column-fill: balance;
+        orphans: 2;
+        widows: 2;
+        hyphens: auto;
+      }
+
+      .article-title {
+        font-size: 28pt;
+        line-height: 1.2;
+        margin-bottom: 12pt;
+        column-span: all;
+        break-after: avoid;
+      }
+
+      .article-dek {
+        font-size: 12pt;
+        line-height: 1.4;
+        margin-bottom: 18pt;
+        column-span: all;
+        font-weight: 500;
+        break-after: avoid;
+      }
+
+      .article-author {
+        font-size: 9pt;
+        margin-bottom: 24pt;
+        column-span: all;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        break-after: avoid;
+      }
+
+      .article-body p {
+        margin-bottom: 8pt;
+        break-inside: avoid-column;
+      }
+
+      .article-body p:first-child::first-letter {
+        font-size: 35pt;
+        line-height: 1;
+        float: left;
+        margin: 0 8pt 0 0;
+        font-weight: bold;
+      }
+    
+        .pullquote {
+          font-size: 14pt;
+          line-height: 1.3;
+          font-weight: bold;
+          margin: 18pt 0;
+          padding: 12pt 0;
+          border-top: 2px solid #333;
+          border-bottom: 2px solid #333;
+          column-span: all;
+          break-inside: avoid;
+        }
+      
+      .inline-image {
+        width: 100%;
+        margin: 12pt 0;
+        break-inside: avoid;
+      }
+
+      .image-caption {
+        font-size: 9pt;
+        line-height: 1.3;
+        margin-top: 6pt;
+        font-style: italic;
+        color: #666;
+      }
+
+      .image-credit {
+        font-size: 8pt;
+        color: #999;
+        margin-top: 3pt;
+      }
+    
+          </style>
+          
+      <header class="article-header">
+        <h1 class="article-title">Nachhaltigkeit im Alltag</h1>
+        
+        <div class="article-author">Von Tom Öko</div>
+      </header>
+    
+      <div class="article-content">
+        <div class="article-body">
+          <p>Nachhaltiges Leben muss nicht kompliziert sein. Kleine Änderungen können große Wirkung haben.</p><h2>Einfache Schritte</h2><p>Vom Verzicht auf Plastikbeutel bis hin zum bewussten Konsum – jeder kann einen Beitrag leisten. Die Generation Z macht es vor.</p><p>Besonders wichtig: Nachhaltigkeit sollte bezahlbar bleiben. Es geht nicht darum, perfekt zu sein, sondern besser zu werden.
+          <blockquote class="pullquote">
+            Nachhaltiges Leben muss nicht kompliziert sein
+          </blockquote>
+        </p>
+        </div>
+      </div>
+    
+        </article>
+      
+        <article class="magazine-article" style="page-break-before: auto;">
+          <style scoped>
+            
+      .article-content {
+        font-size: 10pt;
+        line-height: 1.45;
+        column-count: 2;
+        column-gap: 24px;
+        column-fill: balance;
+        orphans: 2;
+        widows: 2;
+        hyphens: auto;
+      }
+
+      .article-title {
+        font-size: 28pt;
+        line-height: 1.2;
+        margin-bottom: 12pt;
+        column-span: all;
+        break-after: avoid;
+      }
+
+      .article-dek {
+        font-size: 12pt;
+        line-height: 1.4;
+        margin-bottom: 18pt;
+        column-span: all;
+        font-weight: 500;
+        break-after: avoid;
+      }
+
+      .article-author {
+        font-size: 9pt;
+        margin-bottom: 24pt;
+        column-span: all;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        break-after: avoid;
+      }
+
+      .article-body p {
+        margin-bottom: 8pt;
+        break-inside: avoid-column;
+      }
+
+      .article-body p:first-child::first-letter {
+        font-size: 35pt;
+        line-height: 1;
+        float: left;
+        margin: 0 8pt 0 0;
+        font-weight: bold;
+      }
+    
+        .hero-image {
+          width: 100%;
+          height: 35vh;
+          object-fit: cover;
+          margin-bottom: 24pt;
+          column-span: all;
+          break-after: avoid;
+        }
+      
+        .pullquote {
+          font-size: 14pt;
+          line-height: 1.3;
+          font-weight: bold;
+          margin: 18pt 0;
+          padding: 12pt 0;
+          border-top: 2px solid #333;
+          border-bottom: 2px solid #333;
+          column-span: all;
+          break-inside: avoid;
+        }
+      
+      .inline-image {
+        width: 100%;
+        margin: 12pt 0;
+        break-inside: avoid;
+      }
+
+      .image-caption {
+        font-size: 9pt;
+        line-height: 1.3;
+        margin-top: 6pt;
+        font-style: italic;
+        color: #666;
+      }
+
+      .image-credit {
+        font-size: 8pt;
+        color: #999;
+        margin-top: 3pt;
+      }
+    
+          </style>
+          
+        <div class="hero-image-container">
+          <img src="https://images.unsplash.com/photo-1485827404703-89b55fcc595e" 
+               alt="KI-Technologie im Einsatz"
+               class="article-image hero-image"
+               style="object-position: 0.5,0.3;">
+          <div class="image-caption">KI-Technologie im Einsatz</div>
+          <div class="image-credit">Foto: Unsplash</div>
+        </div>
+      
+      <header class="article-header">
+        <h1 class="article-title">KI verändert unsere Zukunft</h1>
+        <div class="article-dek">Wie künstliche Intelligenz Branchen revolutioniert</div>
+        <div class="article-author">Von Dr. Anna Technik</div>
+      </header>
+    
+      <div class="article-content">
+        <div class="article-body">
+          <p>Künstliche Intelligenz ist nicht mehr nur Science Fiction. Sie verändert bereits heute grundlegend, wie wir arbeiten, leben und kommunizieren.</p><h2>Die Revolution hat begonnen</h2><p>Von selbstfahrenden Autos bis hin zu intelligenten Assistenten – KI ist überall. Die Technologie entwickelt sich so schnell, dass selbst Experten überrascht sind.</p><blockquote>"KI wird die nächste industrielle Revolution sein"</blockquote><p>Unternehmen investieren Milliarden in KI-Forschung. Die Auswirkungen werden in allen Bereichen spürbar sein.
+          <blockquote class="pullquote">
+            Künstliche Intelligenz ist nicht mehr nur Science Fiction
+          </blockquote>
+        </p>
+        </div>
+      </div>
+    
+        </article>
+      
+          
+          <!-- Imprint -->
+          
+      <div class="imprint-page">
+        <h2 class="imprint-title">Impressum</h2>
+        
+        <div class="imprint-section">
+          <strong>Herausgeber:</strong><br>
+          MagCast Publishing GmbH<br>
+          Musterstraße 123<br>
+          12345 Musterstadt
+        </div>
+        
+        <div class="imprint-section">
+          <strong>Redaktion:</strong><br>
+          Chefredaktion: Max Mustermann<br>
+          E-Mail: redaktion@magcast.de
+        </div>
+        
+        <div class="imprint-section">
+          <strong>Ausgabe:</strong><br>
+          Vielfalt &amp; Innovation Magazin - 2025-11<br>
+          Erscheinungsdatum: 1.11.2025
+        </div>
+        
+        <div class="imprint-section">
+          <strong>Technische Umsetzung:</strong><br>
+          Automatisiert erstellt mit MagCast Publishing Engine<br>
+          Template: Magazine Pack vv3.0.1
+        </div>
+        
+        <div class="imprint-section">
+          <strong>Copyright:</strong><br>
+          Alle Rechte vorbehalten. Nachdruck, auch auszugsweise, nur mit ausdrücklicher Genehmigung des Verlags.
+        </div>
+      </div>
+    
+        </div>
+      
+      
+    
+</body>
+</html>

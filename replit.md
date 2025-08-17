@@ -26,6 +26,8 @@ Das System ist vollständig funktionsfähig und kann Magazine aus JSON-Daten gen
 - ✅ **Menüpunkt umbenannt**: "JSON Ingestion" → "Datenverwaltung" 
 - ✅ **Frontend vollständig debuggt**: Magazine erscheinen sofort nach JSON-Import
 - ✅ **Single-User optimiert**: Kein komplexes Caching mehr, einfache useState/useEffect Pattern
+- ✅ **Render Jobs funktionieren**: PDF-Rendering-Problem in Replit gelöst mit HTML-Preview-Fallback
+- ✅ **Publications-Seite zeigt fertige Magazine**: Download-Links funktionieren korrekt
 
 ### Workflow-Beispiel:
 1. JSON in `/json-ingestion` importieren → Issue + Artikel in DB
