@@ -28,6 +28,7 @@ Das System ist vollständig funktionsfähig und kann Magazine aus JSON-Daten gen
 - ✅ **Single-User optimiert**: Kein komplexes Caching mehr, einfache useState/useEffect Pattern
 - ✅ **Render Jobs funktionieren**: PDF-Rendering-Problem in Replit gelöst mit HTML-Preview-Fallback
 - ✅ **Publications-Seite zeigt fertige Magazine**: Download-Links funktionieren korrekt
+- ✅ **Port 5000 freigegeben**: System bereit für Replit-Assistant-Entwicklung
 
 ### Workflow-Beispiel:
 1. JSON in `/json-ingestion` importieren → Issue + Artikel in DB
