@@ -39,9 +39,11 @@ export default function JsonIngestion() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch existing magazines
-  const { data: magazines = [], isLoading: loadingMagazines } = useQuery<Issue[]>({
+  // Fetch existing magazines with no caching
+  const { data: magazines = [], isLoading: loadingMagazines, refetch: refetchMagazines } = useQuery<Issue[]>({
     queryKey: ["/api/issues"],
+    staleTime: 0,
+    gcTime: 0, // Don't cache at all
   });
 
   const processJsonMutation = useMutation({
@@ -50,7 +52,9 @@ export default function JsonIngestion() {
       return response.json();
     },
     onSuccess: () => {
+      // Force refetch immediately
       queryClient.invalidateQueries({ queryKey: ["/api/issues"] });
+      queryClient.refetchQueries({ queryKey: ["/api/issues"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({
         title: "Erfolg",
@@ -420,7 +424,7 @@ export default function JsonIngestion() {
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900 mb-2">Magazin-Verwaltung & JSON-Import</h1>
+        <h1 className="text-2xl font-semibold text-slate-900 mb-2">Datenverwaltung</h1>
         <p className="text-slate-600">
           Erstelle neue Magazine und importiere Inhalte im JSON-Format
         </p>

@@ -13,7 +13,7 @@ import {
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutGrid },
-  { name: "JSON Ingestion", href: "/json-ingestion", icon: Upload },
+  { name: "Datenverwaltung", href: "/json-ingestion", icon: Upload },
   { name: "Templates", href: "/templates", icon: Layers },
   { name: "Layout Engine", href: "/layout-engine", icon: Settings },
   { name: "Render Queue", href: "/render-queue", icon: BarChart3 },
